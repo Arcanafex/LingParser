@@ -7,6 +7,18 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        
+        <TextBox Name="TextBlock" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="" Width="530" VerticalScrollBarVisibility="Auto" Height="276" VerticalAlignment="Top" LostFocus="MyTextBox_LostFocus"/>
+        <Button Name="LoadText" Content="Load" HorizontalAlignment="Left" Margin="10,392,0,0" VerticalAlignment="Top" Width="75" Click="Load_Click"/>
+        <TextBox Name="PathBox" Height="23" Margin="10,364,255,0" TextWrapping="Wrap" Text="Path" VerticalAlignment="Top"/>
+        <Label Content="Lines" HorizontalAlignment="Left" Margin="13,333,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>
+        <TextBlock Name="LineCount" HorizontalAlignment="Left" Margin="60,338,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top"/>
+        <DataGrid Name="WordGrid" Margin="558,10,10,0" Height="276" VerticalAlignment="Top" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" />
+        <Button Name="GetWords" Content="Parse" HorizontalAlignment="Left" Margin="90,392,0,0" VerticalAlignment="Top" Width="75" Click="GetWords_Click"/>
+        <Label Content="Chars" HorizontalAlignment="Left" Margin="90,333,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>
+        <TextBlock Name="CharCount" HorizontalAlignment="Left" Margin="134,338,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top"/>
+        <Button Name="Delete" Content="Delete" HorizontalAlignment="Left" Margin="558,291,0,0" VerticalAlignment="Top" Width="75" Click="Delete_Click"/>
+        <TextBox Name="WordPattern" HorizontalAlignment="Left" Height="23" Margin="95,294,0,0" TextWrapping="Wrap" Text="\w+" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Word Pattern" HorizontalAlignment="Left" Margin="10,291,0,0" VerticalAlignment="Top"/>
+
     </Grid>
 </Window>
