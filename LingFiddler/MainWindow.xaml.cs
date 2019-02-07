@@ -37,17 +37,31 @@ namespace LingFiddler
             get { return CurrentText.ToCharArray().Count(c => c == '\n') + 1; }
         }
 
+        public int CurrentWordCount { get; set; }
+
+        private System.Text.RegularExpressions.Regex currentWordPattern;
+        public System.Text.RegularExpressions.Regex CurrentWordPattern
+        {
+            get
+            {
+                if (currentWordPattern == null)
+                    currentWordPattern = new System.Text.RegularExpressions.Regex(WordPattern.Text);
+
+                return currentWordPattern;
+            }
+        }
+
         public List<Word> SelectedWords { get; set; }
         public List<Word> WordList
         {
             get { return Word.Words.OrderBy(w => w.Graph).ToList(); }
-            set { Word.Words = value; }
         }
 
         public MainWindow()
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
+            FilterChars.Text = new string (Word.FilterChars);
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -58,15 +72,30 @@ namespace LingFiddler
             {
                 TextBlock.Text = File.ReadAllText(path, Encoding.UTF8);
             }
-
-            UpdateCurrentText();
         }
 
-        private void UpdateCurrentText()
+        private void CurrentTextUpdated(object sender, TextChangedEventArgs e)
         {
             CurrentText = TextBlock.Text;
-            LineCount.Text = CurrentTextLineCount.ToString();
-            CharCount.Text = TextBlock.Text.ToCharArray().Length.ToString();
+
+            var textChars = TextBlock.Text.ToCharArray();
+            CharCount.Text = textChars.Length.ToString();
+            Grapheme.Graphemes = new HashSet<char>(textChars.Distinct());
+            UniqueCharCount.Text = Grapheme.Graphemes.Count().ToString();
+
+            UpdateWordCount();
+        }
+
+        private void UpdateCurrentWordPattern(object sender, TextChangedEventArgs e)
+        {
+            currentWordPattern = new System.Text.RegularExpressions.Regex(WordPattern.Text);
+            UpdateWordCount();
+        }
+
+        private void UpdateWordCount()
+        {
+            CurrentWordCount = String.IsNullOrEmpty(CurrentText) ? 0 : CurrentWordPattern.Matches(CurrentText).Count;
+            WordCount.Text = CurrentWordCount.ToString();
         }
 
         private SQLiteConnection CreateConnection()
@@ -99,15 +128,14 @@ namespace LingFiddler
 
         private void GetWords_Click(object sender, RoutedEventArgs e)
         {
-            UpdateCurrentText();
-
-            var pattern = new System.Text.RegularExpressions.Regex(WordPattern.Text);
-
             Word.Clear();
+            Word.FilterChars = FilterChars.Text.ToCharArray();
 
-            foreach (System.Text.RegularExpressions.Match m in pattern.Matches(TextBlock.Text))
+            float weight = 1 / (CurrentWordCount == 0 ? 1 : CurrentWordCount);
+
+            foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
-                Word.Add(m.Value);
+                Word.Add(m.Value, weight);
             }
 
             UpdateWordGrid();
@@ -138,6 +166,11 @@ namespace LingFiddler
 
             SelectedWords.ForEach(w => Word.Remove(w));
             UpdateWordGrid();
+        }
+
+        private void SaveWords_Click(object sender, RoutedEventArgs e)
+        {
+            //Here's where we write the words to the DB
         }
 
         protected void MyTextBox_LostFocus(object sender, RoutedEventArgs e)
