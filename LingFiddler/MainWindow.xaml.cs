@@ -38,6 +38,7 @@ namespace LingFiddler
         }
 
         public int CurrentWordCount { get; set; }
+        public HashSet<char> CurrentCharSet { get; set; }
 
         private System.Text.RegularExpressions.Regex currentWordPattern;
         public System.Text.RegularExpressions.Regex CurrentWordPattern
@@ -51,17 +52,17 @@ namespace LingFiddler
             }
         }
 
-        public List<Word> SelectedWords { get; set; }
-        public List<Word> WordList
+        public List<Morph> SelectedWords { get; set; }
+        public List<Morph> WordList
         {
-            get { return Word.Words.OrderBy(w => w.Graph).ToList(); }
+            get { return Morph.Words.OrderBy(w => w.Graph).ToList(); }
         }
 
         public MainWindow()
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
-            FilterChars.Text = new string (Word.FilterChars);
+            FilterChars.Text = new string (Morph.FilterChars);
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -80,8 +81,8 @@ namespace LingFiddler
 
             var textChars = TextBlock.Text.ToCharArray();
             CharCount.Text = textChars.Length.ToString();
-            Grapheme.Graphemes = new HashSet<char>(textChars.Distinct());
-            UniqueCharCount.Text = Grapheme.Graphemes.Count().ToString();
+            CurrentCharSet = new HashSet<char>(textChars.Distinct());
+            UniqueCharCount.Text = CurrentCharSet.Count().ToString();
 
             UpdateWordCount();
         }
@@ -128,14 +129,12 @@ namespace LingFiddler
 
         private void GetWords_Click(object sender, RoutedEventArgs e)
         {
-            Word.Clear();
-            Word.FilterChars = FilterChars.Text.ToCharArray();
-
-            float weight = 1 / (CurrentWordCount == 0 ? 1 : CurrentWordCount);
+            Morph.Clear();
+            Morph.FilterChars = FilterChars.Text.ToCharArray();
 
             foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
-                Word.Add(m.Value, weight);
+                Morph.Add(m.Value);
             }
 
             UpdateWordGrid();
@@ -143,17 +142,45 @@ namespace LingFiddler
 
         private void UpdateWordGrid()
         {
+            WordGrid.Columns.Clear();
+
+            DataGridTextColumn wordColumn = new DataGridTextColumn()
+            {
+                Header = "Graph",
+                Binding = new Binding("Graph"),
+                Width = 120
+            };
+
+            DataGridTextColumn lengthColumn = new DataGridTextColumn()
+            {
+                Header = "Length",
+                Binding = new Binding("Length"),
+                Width = 50
+            };
+
+            DataGridTextColumn freqColumn = new DataGridTextColumn()
+            {
+                Header = "Frequency",
+                Binding = new Binding("Frequency") { StringFormat = ("N4") },
+                Width = 50
+
+            };
+
+            WordGrid.Columns.Add(wordColumn);
+            WordGrid.Columns.Add(lengthColumn);
+            WordGrid.Columns.Add(freqColumn);
+
             WordGrid.ItemsSource = WordList;
         }
 
         private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SelectedWords == null)
-                SelectedWords = new List<Word>();
+                SelectedWords = new List<Morph>();
             else
                 SelectedWords.Clear();
 
-            foreach(Word w in e.AddedItems)
+            foreach(Morph w in e.AddedItems)
             {
                 SelectedWords.Add(w);
             }            
@@ -162,9 +189,9 @@ namespace LingFiddler
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             if (SelectedWords == null)
-                SelectedWords = new List<Word>();
+                SelectedWords = new List<Morph>();
 
-            SelectedWords.ForEach(w => Word.Remove(w));
+            SelectedWords.ForEach(w => Morph.Remove(w));
             UpdateWordGrid();
         }
 
