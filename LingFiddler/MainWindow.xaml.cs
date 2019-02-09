@@ -62,7 +62,7 @@ namespace LingFiddler
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
-            FilterChars.Text = new string (Morph.FilterChars);
+            //FilterChars.Text = new string (Morph.FilterChars);
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -130,7 +130,7 @@ namespace LingFiddler
         private void GetWords_Click(object sender, RoutedEventArgs e)
         {
             Morph.Clear();
-            Morph.FilterChars = FilterChars.Text.ToCharArray();
+            //Morph.FilterChars = FilterChars.Text.ToCharArray();
 
             foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
@@ -161,7 +161,7 @@ namespace LingFiddler
             DataGridTextColumn freqColumn = new DataGridTextColumn()
             {
                 Header = "Frequency",
-                Binding = new Binding("Frequency") { StringFormat = ("N4") },
+                Binding = new Binding("Frequency"),
                 Width = 50
 
             };

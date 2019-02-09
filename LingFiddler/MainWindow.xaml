@@ -17,10 +17,10 @@
         <Label Content="Chars" HorizontalAlignment="Left" Margin="10,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>
         <TextBlock Name="CharCount" HorizontalAlignment="Left" Margin="150,296,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top"/>
         <Button Name="Delete" Content="Delete" Margin="710,291,10,0" VerticalAlignment="Top" Click="Delete_Click"/>
-        <TextBox Name="WordPattern" HorizontalAlignment="Left" Height="23" Margin="356,294,0,0" TextWrapping="Wrap" Text="\w+" VerticalAlignment="Top" Width="184" TextChanged="UpdateCurrentWordPattern"/>
+        <TextBox Name="WordPattern" HorizontalAlignment="Left" Height="23" Margin="356,294,0,0" TextWrapping="Wrap" Text="[^\W0-9_]+" VerticalAlignment="Top" Width="184" TextChanged="UpdateCurrentWordPattern"/>
         <Label Content="Word Pattern" HorizontalAlignment="Left" Margin="270,291,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="FilterChars" HorizontalAlignment="Left" Height="23" Margin="356,322,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="184"/>
-        <Label Content="Filter Chars" HorizontalAlignment="Left" Margin="270,320,0,0" VerticalAlignment="Top" Width="72" RenderTransformOrigin="0.315,0.36"/>
+        <TextBox x:Name="LinePattern" HorizontalAlignment="Left" Height="23" Margin="356,322,0,0" TextWrapping="Wrap" Text=".+[\.\?\!]" VerticalAlignment="Top" Width="184"/>
+        <Label Content="Line Pattern" HorizontalAlignment="Left" Margin="270,320,0,0" VerticalAlignment="Top" Width="72" RenderTransformOrigin="0.315,0.36"/>
         <Button x:Name="SaveWords" Content="Save" Margin="710,392,10,0" VerticalAlignment="Top" Click="SaveWords_Click"/>
         <TextBox Height="23" Margin="558,364,10,0" TextWrapping="Wrap" Text="Language" VerticalAlignment="Top"/>
         <Label Content="Unique Chars" HorizontalAlignment="Left" Margin="10,307,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>

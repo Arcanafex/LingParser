@@ -11,7 +11,7 @@ namespace LingFiddler
     /// </summary>
     public class Morph
     {
-        public static char[] FilterChars { get; set; } = { '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+        //public static char[] FilterChars { get; set; } = { '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
         public string Graph { get; set; }
         public int Length { get { return Graph.Length; } }
@@ -53,18 +53,18 @@ namespace LingFiddler
             if (String.IsNullOrEmpty(word))
                 return;
 
-            word = word.ToLower().Trim(Morph.FilterChars);
+            //word = word.ToLower().Trim(Morph.FilterChars);
 
-            if (word == String.Empty)
-                return;
+            //if (word == String.Empty)
+            //    return;
 
-            foreach (var morph in word.Split(Morph.FilterChars, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var thisWord = Words.FirstOrDefault(w => w.Graph == morph);
+            //foreach (var morph in word.Split(Morph.FilterChars, StringSplitOptions.RemoveEmptyEntries))
+            //{
+                var thisWord = Words.FirstOrDefault(w => w.Graph == word);
 
                 if (thisWord == null)
                 {
-                    thisWord = new Morph(morph)
+                    thisWord = new Morph(word)
                     {
                         Frequency = weight
                     };
@@ -75,7 +75,7 @@ namespace LingFiddler
                 {
                     thisWord.Frequency += weight;
                 }
-            }
+            //}
         }
 
         public static void Remove(Morph word)
