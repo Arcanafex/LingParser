@@ -149,12 +149,12 @@ namespace LingFiddler
     }
 
 
-    public class Expression
+    public class Expression : List<Morph>
     {
         public enum GrammaticalityJudgement { Good, Bad, Weird }
 
         public string Graph { get; set; }
-        public List<Morph> MorphChain { get; set; }
+        //public List<Morph> MorphChain { get; set; }
         public HashSet<string> Translations { get; set; }
         public GrammaticalityJudgement Judgement { get; set; }
         public Language Language { get; set; }
@@ -164,26 +164,26 @@ namespace LingFiddler
         // leaving aside issues of code-switching for now, wrt Language source
     }
 
-    public class Text
+    public class Text : List<Expression>
     {
         //a set of Expressions
         public string Title { get; set; }
-        public List<Expression> Content { get; set; }
+        //public List<Expression> Content { get; set; }
     }
 
-    public class Corpus
+    public class Corpus : HashSet<Text>
     {
         //a set of Texts
         public string Title { get; set; }
-        public HashSet<Text> Texts { get; set; }
+        //public HashSet<Text> Texts { get; set; }
         public string Description { get; set; }
     }
 
-    public class Script
+    public class Script : HashSet<Glyph>
     {
         //a set of Glyphs
         public string Name { get; set; }
-        public HashSet<Glyph> GlyphSet { get; set; }
+        //public HashSet<Glyph> GlyphSet { get; set; }
     }
 
     public class Glyph
@@ -209,9 +209,9 @@ namespace LingFiddler
         public string Symbol { get; set; }
     }
 
-    public class PragmaSet
+    public class PragmaSet : HashSet<Pragma>
     {
-        public HashSet<Pragma> Pragmata { get; set; }
+        //public HashSet<Pragma> Pragmata { get; set; }
     }
 
     public class Feature { }
@@ -224,10 +224,10 @@ namespace LingFiddler
         // function(Pragma, Features) => Morph
     }
 
-    public class ParadigmSet
+    public class ParadigmSet : HashSet<Paradigm>
     {
         // The set of Paradigms
-        public HashSet<Paradigm> Paradigms { get; set; }
+        //public HashSet<Paradigm> Paradigms { get; set; }
     }
 
     //Discource set as a way of specifying features for a sequence of Expressions.
