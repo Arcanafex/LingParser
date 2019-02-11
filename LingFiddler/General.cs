@@ -91,7 +91,7 @@ namespace Lingx
 
         public List<Grapheme> GraphemeChain { get; set; }
         public List<Phoneme> PhonemeChain { get; set; }
-        //public HashSet<Expression> Expressions { get; set; }
+        public HashSet<Expression> Expressions { get; set; }
         public Pragma Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
 
@@ -138,26 +138,39 @@ namespace Lingx
             }
         }
 
-        //public void Merge(Morph target, Morph mergee)
-        //{
-        //    if (target == mergee)
-        //        return;
+        public void Merge(Morph target, Morph mergee)
+        {
+            if (target == mergee)
+                return;
 
-        //    if (Language.CurrentLanguage.Lexicon.ContainsKey(target) && Language.CurrentLanguage.Lexicon.ContainsKey(mergee))
-        //    {
-        //        Language.CurrentLanguage.Lexicon[target] += Language.CurrentLanguage.Lexicon[mergee];
+            if (this.ContainsKey(target) && this.ContainsKey(mergee))
+            {
+                this[target] += this[mergee];
 
-        //        Language.CurrentLanguage.Lexicon.Remove(mergee);
-        //    }
-        //}
+                if (mergee.Expressions != null)
+                {
+                    foreach (var expression in mergee.Expressions)
+                    {
+                        expression.Where(m => m == mergee).Select(m => expression.IndexOf(m)).ToList().ForEach(i => expression[i] = target);
 
-        //public void Merge(IEnumerable<Morph> morphs)
-        //{
-        //    foreach (var morph in morphs)
-        //    {
-        //        this.Merge(morph);
-        //    }
-        //}
+                        if (target.Expressions == null)
+                            target.Expressions = new HashSet<Expression>();
+
+                        target.Expressions.Add(expression);
+                    }
+                }
+
+                Remove(mergee);
+            }
+        }
+
+        public void Merge(Morph target, IEnumerable<Morph> morphs)
+        {
+            foreach (var morph in morphs)
+            {
+                Merge(target, morph);
+            }
+        }
 
     }
 
