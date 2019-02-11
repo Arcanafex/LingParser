@@ -15,7 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 
-namespace LingFiddler
+namespace Lingx
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -52,10 +52,32 @@ namespace LingFiddler
             }
         }
 
+        protected Lexicon localLexicon;
+        public Lexicon LocalLexicon
+        {
+            get
+            {
+                if (localLexicon == null)
+                    localLexicon = new Lexicon();
+
+                return localLexicon;
+            }
+
+            set
+            {
+                localLexicon = value;
+            }
+        }
+
         public List<Morph> SelectedWords { get; set; }
         public List<Morph> WordList
         {
-            get { return Morph.Lexicon.Keys.OrderBy(w => w.Graph).ToList(); }
+            get
+            {
+
+
+                return LocalLexicon.Keys.OrderBy(w => w.Graph).ToList();
+            }
         }
 
         public MainWindow()
@@ -129,12 +151,12 @@ namespace LingFiddler
 
         private void GetWords_Click(object sender, RoutedEventArgs e)
         {
-            Morph.Clear();
+            LocalLexicon.Clear();
             //Morph.FilterChars = FilterChars.Text.ToCharArray();
 
             foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
-                Morph.Add(m.Value);
+                LocalLexicon.Add(m.Value);
             }
 
             UpdateWordGrid();
@@ -158,17 +180,17 @@ namespace LingFiddler
                 Width = 50
             };
 
-            DataGridTextColumn freqColumn = new DataGridTextColumn()
-            {
-                Header = "Frequency",
-                Binding = new Binding("Frequency"),
-                Width = 50
+            //DataGridTextColumn freqColumn = new DataGridTextColumn()
+            //{
+            //    Header = "Frequency",
+            //    Binding = new Binding("Frequency"),
+            //    Width = 50
 
-            };
+            //};
 
             WordGrid.Columns.Add(wordColumn);
             WordGrid.Columns.Add(lengthColumn);
-            WordGrid.Columns.Add(freqColumn);
+            //WordGrid.Columns.Add(freqColumn);
 
             WordGrid.ItemsSource = WordList;
         }
@@ -191,13 +213,13 @@ namespace LingFiddler
             if (SelectedWords == null)
                 SelectedWords = new List<Morph>();
 
-            SelectedWords.ForEach(w => Morph.Remove(w));
+            SelectedWords.ForEach(w => LocalLexicon.Remove(w));
             UpdateWordGrid();
         }
 
         private void SaveWords_Click(object sender, RoutedEventArgs e)
         {
-            //Here's where we write the words to the DB
+            //Add LocalLexicon to the CurrentLanguage.Lexicon
         }
 
         protected void MyTextBox_LostFocus(object sender, RoutedEventArgs e)

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LingFiddler.Properties
+namespace Lingx.Properties
 {
 
 

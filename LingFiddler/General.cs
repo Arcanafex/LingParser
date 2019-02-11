@@ -4,24 +4,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LingFiddler
+namespace Lingx
 {
     public class Language
     {
+        public static Language CurrentLanguage { get; set; }
+
         public string Name { get; set; }
         public string Autonym { get; set; }
         public List<string> Exonyms { get; set; }
 
-        // This perhaps will hold the handle for serializing to the language specific Database.
-
-        public PragmaSet Lexicon { get; set; }
+        public PragmaSet Ontology { get; set; }
         public ParadigmSet Morphology { get; set; }
+        public Lexicon Lexicon { get; set; }
     }
 
     /// <summary>
     /// a set of Glyphs
     /// </summary>
-    public class Script : Dictionary<Glyph, int>
+    public class Script : Dictionary<Glyph, string>
     {
         public string Name { get; set; }
         // Ordering of the set of glyphs?
@@ -34,7 +35,51 @@ namespace LingFiddler
 
         public char Graph { get; set; }
         //image form?
+
+        public Glyph(char symbol)
+        {
+            this.Graph = symbol;
+        }
     }
+
+    /// <summary>
+    /// A Graph is a language specific use of a specific glyph or arrangement of glyphs. 
+    /// </summary>
+    public class Grapheme
+    {
+        #region Static Members
+        private static HashSet<Grapheme> orthography;
+        public static HashSet<Grapheme> Orthography
+        {
+            get
+            {
+                if (orthography == null)
+                    orthography = new HashSet<Grapheme>();
+
+                return orthography;
+            }
+            set
+            {
+                orthography = value;
+            }
+        }
+        #endregion
+
+        public string Graph { get; set; }
+        public List<Glyph> GlyphChain { get; set; }
+        public int Frequency { get; set; }
+
+        //context: attested sequences
+        // next graph, frequency
+        // last graph
+        //
+    }
+
+    /// <summary>
+    /// Orthography is a language-specific application of a script's glyphs
+    /// </summary>
+    //public class Orthography : HashSet<Grapheme> { }
+
 
     /// <summary>
     /// Class representing the surface word form.
@@ -43,17 +88,10 @@ namespace LingFiddler
     {
         public string Graph { get; set; }
         public int Length { get { return Graph.Length; } }
-        public int Frequency
-        {
-            get
-            {
-                return Lexicon.ContainsKey(this) ? Lexicon[this] : 0;
-            }
-        }
 
         public List<Grapheme> GraphemeChain { get; set; }
         public List<Phoneme> PhonemeChain { get; set; }
-
+        //public HashSet<Expression> Expressions { get; set; }
         public Pragma Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
 
@@ -61,64 +99,6 @@ namespace LingFiddler
         {
             this.Graph = graph;
         }
-
-        #region Static stuff
-        private static Dictionary<Morph, int> lexicon;
-        public static Dictionary<Morph, int> Lexicon
-        {
-            get
-            {
-                if (lexicon == null)
-                {
-                    lexicon = new Dictionary<Morph, int>();
-                }
-
-                return lexicon;
-            }
-            set
-            {
-                lexicon = value;
-            }
-        }
-
-        public static void Add(string word, int weight = 1)
-        {
-            if (String.IsNullOrEmpty(word))
-                return;
-
-            //word = word.ToLower().Trim(Morph.FilterChars);
-
-            //if (word == String.Empty)
-            //    return;
-
-            //foreach (var morph in word.Split(Morph.FilterChars, StringSplitOptions.RemoveEmptyEntries))
-            //{
-                var thisWord = Lexicon.Keys.FirstOrDefault(w => w.Graph == word);
-
-                if (thisWord == null)
-                {
-                    thisWord = new Morph(word);
-
-                    Lexicon.Add(thisWord, weight);
-                }
-                else
-                {
-                    Lexicon[thisWord] += weight;
-                }
-            //}
-        }
-
-        public static void Remove(Morph word)
-        {
-            Lexicon.Remove(word);
-        }
-
-        public static void Clear()
-        {
-            Lexicon.Clear();
-        }
-        #endregion
-
 
         public override bool Equals(object obj)
         {
@@ -135,6 +115,50 @@ namespace LingFiddler
         {
             return base.GetHashCode();
         }
+    }
+
+    public class Lexicon : Dictionary<Morph, int>
+    {
+        public void Add(string word, int weight = 1)
+        {
+            if (String.IsNullOrEmpty(word))
+                return;
+
+            var thisWord = Keys.FirstOrDefault(w => w.Graph == word);
+
+            if (thisWord == null)
+            {
+                thisWord = new Morph(word);
+
+                Add(thisWord, weight);
+            }
+            else
+            {
+                this[thisWord] += weight;
+            }
+        }
+
+        //public void Merge(Morph target, Morph mergee)
+        //{
+        //    if (target == mergee)
+        //        return;
+
+        //    if (Language.CurrentLanguage.Lexicon.ContainsKey(target) && Language.CurrentLanguage.Lexicon.ContainsKey(mergee))
+        //    {
+        //        Language.CurrentLanguage.Lexicon[target] += Language.CurrentLanguage.Lexicon[mergee];
+
+        //        Language.CurrentLanguage.Lexicon.Remove(mergee);
+        //    }
+        //}
+
+        //public void Merge(IEnumerable<Morph> morphs)
+        //{
+        //    foreach (var morph in morphs)
+        //    {
+        //        this.Merge(morph);
+        //    }
+        //}
+
     }
 
     //public struct Context<T>
@@ -166,7 +190,7 @@ namespace LingFiddler
     {
         //a set of Expressions
         public string Title { get; set; }
-        //public List<Expression> Content { get; set; }
+        public Lexicon Lexicon { get; set; }
     }
 
     public class Corpus : HashSet<Text>
@@ -176,45 +200,6 @@ namespace LingFiddler
         //public HashSet<Text> Texts { get; set; }
         public string Description { get; set; }
     }
-
-
-    /// <summary>
-    /// A Graph is a language specific use of a specific glyph or arrangement of glyphs. 
-    /// </summary>
-    public class Grapheme
-    {
-        #region Static Members
-        private static HashSet<Grapheme> graphemes;
-        public static HashSet<Grapheme> Graphemes
-        {
-            get
-            {
-                if (graphemes == null)
-                    graphemes = new HashSet<Grapheme>();
-
-                return graphemes;
-            }
-            set
-            {
-                graphemes = value;
-            }
-        }
-        #endregion
-
-        public string Graph { get; set; }
-        public List<Glyph> GlyphChain { get; set; }
-        public int Frequency { get; set; }
-
-        //context: attested sequences
-        // next graph, frequency
-        // last graph
-        //
-    }
-
-    /// <summary>
-    /// Orthography is a language-specific application of a script's glyphs
-    /// </summary>
-    //public class Orthography : HashSet<Grapheme> { }
 
     public class Phoneme { }
 
@@ -231,7 +216,6 @@ namespace LingFiddler
     }
 
     public class Feature { }
-    public class FeatureSet { }
 
     public class Paradigm
     {
