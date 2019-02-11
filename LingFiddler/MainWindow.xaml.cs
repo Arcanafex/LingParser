@@ -55,7 +55,7 @@ namespace LingFiddler
         public List<Morph> SelectedWords { get; set; }
         public List<Morph> WordList
         {
-            get { return Morph.Words.OrderBy(w => w.Graph).ToList(); }
+            get { return Morph.Lexicon.Keys.OrderBy(w => w.Graph).ToList(); }
         }
 
         public MainWindow()

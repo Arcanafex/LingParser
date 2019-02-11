@@ -47,7 +47,7 @@ namespace LingFiddler
         {
             get
             {
-                Lexicon.ContainsKey(this.Graph) ? Lexicon[this.Graph] : 0;
+                return Lexicon.ContainsKey(this) ? Lexicon[this] : 0;
             }
         }
 
@@ -70,7 +70,7 @@ namespace LingFiddler
             {
                 if (lexicon == null)
                 {
-                    lexicon = new Dictionary<Morph>();
+                    lexicon = new Dictionary<Morph, int>();
                 }
 
                 return lexicon;
