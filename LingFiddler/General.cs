@@ -6,23 +6,56 @@ using System.Threading.Tasks;
 
 namespace LingFiddler
 {
+    public class Language
+    {
+        public string Name { get; set; }
+        public string Autonym { get; set; }
+        public List<string> Exonyms { get; set; }
+
+        // This perhaps will hold the handle for serializing to the language specific Database.
+
+        public PragmaSet Lexicon { get; set; }
+        public ParadigmSet Morphology { get; set; }
+    }
+
+    /// <summary>
+    /// a set of Glyphs
+    /// </summary>
+    public class Script : Dictionary<Glyph, int>
+    {
+        public string Name { get; set; }
+        // Ordering of the set of glyphs?
+        // public Dictionary<Glyph, string> GlyphInventory { get; set; }
+    }
+
+    public class Glyph
+    {
+        // Ideally, the glyph will be a single unicode code point, with the Grapheme being the combination of, for example, a single character + a diacritic
+
+        public char Graph { get; set; }
+        //image form?
+    }
+
     /// <summary>
     /// Class representing the surface word form.
     /// </summary>
     public class Morph
     {
-        //public static char[] FilterChars { get; set; } = { '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-
         public string Graph { get; set; }
         public int Length { get { return Graph.Length; } }
-        public int Frequency { get; set; }
+        public int Frequency
+        {
+            get
+            {
+                Lexicon.ContainsKey(this.Graph) ? Lexicon[this.Graph] : 0;
+            }
+        }
+
         public List<Grapheme> GraphemeChain { get; set; }
+        public List<Phoneme> PhonemeChain { get; set; }
+
         public Pragma Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
-
-        // context - issue being how much to worry about syntax.
-        // prior morphs
-        // following morphs
 
         public Morph(string graph)
         {
@@ -30,21 +63,21 @@ namespace LingFiddler
         }
 
         #region Static stuff
-        private static HashSet<Morph> words;
-        public static HashSet<Morph> Words
+        private static Dictionary<Morph, int> lexicon;
+        public static Dictionary<Morph, int> Lexicon
         {
             get
             {
-                if (words == null)
+                if (lexicon == null)
                 {
-                    words = new HashSet<Morph>();
+                    lexicon = new Dictionary<Morph>();
                 }
 
-                return words;
+                return lexicon;
             }
             set
             {
-                words = value;
+                lexicon = value;
             }
         }
 
@@ -60,32 +93,29 @@ namespace LingFiddler
 
             //foreach (var morph in word.Split(Morph.FilterChars, StringSplitOptions.RemoveEmptyEntries))
             //{
-                var thisWord = Words.FirstOrDefault(w => w.Graph == word);
+                var thisWord = Lexicon.Keys.FirstOrDefault(w => w.Graph == word);
 
                 if (thisWord == null)
                 {
-                    thisWord = new Morph(word)
-                    {
-                        Frequency = weight
-                    };
+                    thisWord = new Morph(word);
 
-                    Words.Add(thisWord);
+                    Lexicon.Add(thisWord, weight);
                 }
                 else
                 {
-                    thisWord.Frequency += weight;
+                    Lexicon[thisWord] += weight;
                 }
             //}
         }
 
         public static void Remove(Morph word)
         {
-            Words.Remove(word);
+            Lexicon.Remove(word);
         }
 
         public static void Clear()
         {
-            Words.Clear();
+            Lexicon.Clear();
         }
         #endregion
 
@@ -114,6 +144,39 @@ namespace LingFiddler
     //    //N Levels deep?
     //    public List<Context<T>> Subcontext;
     //}
+
+
+
+    public class Expression : List<Morph>
+    {
+        public enum GrammaticalityJudgement { Good, Bad, Weird }
+
+        public string Graph { get; set; }
+        //public List<Morph> MorphChain { get; set; }
+        public HashSet<string> Translations { get; set; }
+        public GrammaticalityJudgement Judgement { get; set; }
+        public Language Language { get; set; }
+
+        // context? This may be retrieved from Text set
+        // discourse context? e.g. semantic/pragmatic assumptions affection expression
+        // leaving aside issues of code-switching for now, wrt Language source
+    }
+
+    public class Text : List<Expression>
+    {
+        //a set of Expressions
+        public string Title { get; set; }
+        //public List<Expression> Content { get; set; }
+    }
+
+    public class Corpus : HashSet<Text>
+    {
+        //a set of Texts
+        public string Title { get; set; }
+        //public HashSet<Text> Texts { get; set; }
+        public string Description { get; set; }
+    }
+
 
     /// <summary>
     /// A Graph is a language specific use of a specific glyph or arrangement of glyphs. 
@@ -148,61 +211,14 @@ namespace LingFiddler
         //
     }
 
+    /// <summary>
+    /// Orthography is a language-specific application of a script's glyphs
+    /// </summary>
+    //public class Orthography : HashSet<Grapheme> { }
 
-    public class Expression : List<Morph>
-    {
-        public enum GrammaticalityJudgement { Good, Bad, Weird }
+    public class Phoneme { }
 
-        public string Graph { get; set; }
-        //public List<Morph> MorphChain { get; set; }
-        public HashSet<string> Translations { get; set; }
-        public GrammaticalityJudgement Judgement { get; set; }
-        public Language Language { get; set; }
-
-        // context? This may be retrieved from Text set
-        // discourse context? e.g. semantic/pragmatic assumptions affection expression
-        // leaving aside issues of code-switching for now, wrt Language source
-    }
-
-    public class Text : List<Expression>
-    {
-        //a set of Expressions
-        public string Title { get; set; }
-        //public List<Expression> Content { get; set; }
-    }
-
-    public class Corpus : HashSet<Text>
-    {
-        //a set of Texts
-        public string Title { get; set; }
-        //public HashSet<Text> Texts { get; set; }
-        public string Description { get; set; }
-    }
-
-    public class Script : HashSet<Glyph>
-    {
-        //a set of Glyphs
-        public string Name { get; set; }
-        //public HashSet<Glyph> GlyphSet { get; set; }
-    }
-
-    public class Glyph
-    {
-        public string Graph { get; set; }
-        //image form?
-    }
-
-    public class Language
-    {
-        public string Name { get; set; }
-        public string Autonym { get; set; }
-        public List<string> Exonyms { get; set; }
-
-        // This perhaps will hold the handle for serializing to the language specific Database.
-
-        public PragmaSet Lexicon { get; set; }
-        public ParadigmSet Morphology { get; set; }
-    }
+    public class Phonology { }
 
     public class Pragma
     {
