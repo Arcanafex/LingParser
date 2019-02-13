@@ -13,7 +13,7 @@
         <Label Content="Word Estimate" HorizontalAlignment="Left" Margin="10,324,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>
         <TextBlock Name="WordCount" HorizontalAlignment="Left" Margin="150,329,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top"/>
         <DataGrid Name="WordGrid" Margin="558,10,10,0" Height="276" VerticalAlignment="Top" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" />
-        <Button Name="GetWords" Content="Parse" HorizontalAlignment="Left" Margin="465,392,0,0" VerticalAlignment="Top" Width="75" Click="GetWords_Click"/>
+        <Button x:Name="GetWords" Content="Parse" HorizontalAlignment="Left" Margin="465,392,0,0" VerticalAlignment="Top" Width="75" Click="GetWords_Click"/>
         <Label Content="Chars" HorizontalAlignment="Left" Margin="10,291,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.196,0.604"/>
         <TextBlock Name="CharCount" HorizontalAlignment="Left" Margin="150,296,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top"/>
         <Button Name="Delete" Content="Delete" Margin="710,291,10,0" VerticalAlignment="Top" Click="Delete_Click"/>
