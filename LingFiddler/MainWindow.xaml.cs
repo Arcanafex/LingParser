@@ -78,8 +78,13 @@ namespace Lx
             }
         }
 
-        public Dictionary<Ngram, int> Bigrams;
-        public Dictionary<Ngram, int> Trigrams;
+        public List<Morph> CreatedWords { get; set; }
+
+        public Dictionary<string, int> Bigrams;
+        public Dictionary<string, int> Trigrams;
+
+        public FiniteStateAutomoton BigramFSA;
+        public FiniteStateAutomoton TrigramFSA;
 
         public class NgramView
         {
@@ -88,7 +93,7 @@ namespace Lx
             public string Value { get; set; }
             public int Weight { get; set; }
 
-            public static List<NgramView> GetViewList(Dictionary<Ngram, int> ngrams)
+            public static List<NgramView> GetViewList(Dictionary<string, int> ngrams)
             {
                 var outList = new List<NgramView>();
 
@@ -97,9 +102,9 @@ namespace Lx
                     outList.Add(
                         new NgramView()
                         {
-                            Onset = ngram.Onset,
-                            Coda = ngram.Coda,
-                            Value = ngram.Value,
+                            Onset = ngram.Substring(0,1),
+                            Coda = ngram.Substring(ngram.Length - 1),
+                            Value = ngram,
                             Weight = ngrams[ngram]
                         }
                         );
@@ -116,8 +121,12 @@ namespace Lx
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
-            Bigrams = new Dictionary<Ngram, int>();
-            Trigrams = new Dictionary<Ngram, int>();
+
+            Bigrams = new Dictionary<string, int>();
+            Trigrams = new Dictionary<string, int>();
+
+            BigramFSA = new FiniteStateAutomoton();
+            TrigramFSA = new FiniteStateAutomoton();
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -192,32 +201,31 @@ namespace Lx
 
                 foreach (var bigram in Ngram.Parse(m.Value, 2))
                 {
-                    var key = Bigrams.Keys.FirstOrDefault(k => k.Value == bigram.Value);
-
-                    if (key != null)
+                    if (Bigrams.ContainsKey(bigram))
                     {
-                        Bigrams[key] += 1;
+                        Bigrams[bigram] += 1;
                     }
                     else
                     {
                         Bigrams.Add(bigram, 1);
                     }
                 }
-                
+
+                BigramFSA.Parse(m.Value, 2);
+
                 foreach (var trigram in Ngram.Parse(m.Value, 3))
                 {
-                    var key = Trigrams.Keys.FirstOrDefault(k => k.Value == trigram.Value);
-
-                    if (key != null)
+                    if (Trigrams.ContainsKey(trigram))
                     {
-                        Trigrams[key] += 1;
+                        Trigrams[trigram] += 1;
                     }
                     else
                     {
                         Trigrams.Add(trigram, 1);
                     }
                 }
-                
+
+                TrigramFSA.Parse(m.Value, 3);
             }
 
             UpdateWordGrid();
@@ -257,7 +265,7 @@ namespace Lx
             WordGrid.ItemsSource = WordList;
         }
 
-        private void UpdateNgramGrid(Dictionary<Ngram, int> source, List<NgramView> target)
+        private void UpdateNgramGrid(Dictionary<string, int> source, List<NgramView> target)
         {
             target = new List<NgramView>(NgramView.GetViewList(source));
 
@@ -300,17 +308,33 @@ namespace Lx
             WordGrid.ItemsSource = target;
         }
 
+        private void UpdateCreatedWordGrid()
+        {
+            WordGrid.ItemsSource = null;
+            WordGrid.Columns.Clear();
+
+            DataGridTextColumn wordColumn = new DataGridTextColumn()
+            {
+                Header = "Graph",
+                Binding = new Binding("Graph"),
+                Width = 250
+            };
+
+            WordGrid.Columns.Add(wordColumn);
+            WordGrid.ItemsSource = CreatedWords;
+        }
+
         private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SelectedWords == null)
-                SelectedWords = new List<Morph>();
-            else
-                SelectedWords.Clear();
+            //if (SelectedWords == null)
+            //    SelectedWords = new List<Morph>();
+            //else
+            //    SelectedWords.Clear();
 
-            foreach(Morph w in e.AddedItems)
-            {
-                SelectedWords.Add(w);
-            }            
+            //foreach(Morph w in e.AddedItems)
+            //{
+            //    SelectedWords.Add(w);
+            //}            
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
@@ -351,7 +375,22 @@ namespace Lx
 
         private void CreateWords_Click(object sender, RoutedEventArgs e)
         {
+            if (CreatedWords == null)
+                CreatedWords = new List<Morph>();
 
+            var random = new Random();
+
+            
+
+            for (int w = 0; w <= 20; w++)
+            {
+                CreatedWords.Add(new Morph(BigramFSA.CreateRandom(random)));
+                //CreatedWords.Add(new Morph(TrigramFSA.CreateRandom(random)));
+            }
+
+            UpdateCreatedWordGrid();
         }
+
+
     }
 }

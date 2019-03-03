@@ -123,6 +123,9 @@ namespace Lx
         public Node End { get; private set; }
         public Dictionary<string, Node> States { get; private set; }
 
+        public const string START = "[";
+        public const string END = "]";
+
         public FiniteStateAutomoton()
         {
             Start = new Node("[");
@@ -135,7 +138,7 @@ namespace Lx
             Node startNode;
             Node endNode;
 
-            if (from == "_")
+            if (from == START)
             {
                 startNode = Start;
             }
@@ -149,7 +152,7 @@ namespace Lx
                 States.Add(from, startNode);
             }
 
-            if (to == "_")
+            if (to == END)
             {
                 endNode = End;
             }
@@ -163,7 +166,73 @@ namespace Lx
                 States.Add(to, endNode);
             }
 
+            startNode.AddTransition(endNode);
+        }
 
+        public void Parse(string input, int n, string pattern = "")
+        {
+            var ngrams = new Queue<string>();
+
+            if (!string.IsNullOrEmpty(input))
+            {
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    for (int i = 0; i + n <= input.Length; i++)
+                    {
+                        ngrams.Enqueue(input.Substring(i, n));
+                    }
+                }
+                else
+                {
+                    // regex pattern
+                }
+            }
+
+            string from = START;
+
+            while (ngrams.Count > 0)
+            {
+                string to = ngrams.Dequeue();
+                AddTransition(from, to);
+                from = to;
+            }
+
+            AddTransition(from, END);
+        }
+
+        public string CreateRandom()
+        {
+            var random = new Random();
+
+            return CreateRandom(random);
+        }
+
+        public string CreateRandom(Random random)
+        {
+            var ngramQueue = new Queue<string>();
+
+            Node currentNode = Start.GetNext(random);
+
+            while (currentNode == End)
+            {
+                currentNode = Start.GetNext(random);
+            }
+
+            while (currentNode != End)
+            {
+                ngramQueue.Enqueue(currentNode.Value);
+                currentNode = currentNode.GetNext(random);                 
+            }
+
+            var stringBuilder = new StringBuilder(ngramQueue.Dequeue());
+
+            while (ngramQueue.Count > 0)
+            {
+                string nextNgram = ngramQueue.Dequeue();
+                stringBuilder.Append(nextNgram.Last());
+            }
+
+            return stringBuilder.ToString();
         }
     }
 
@@ -188,6 +257,24 @@ namespace Lx
             {
                 Transitions.Add(to, weight);
             }
+        }
+
+        public Node GetNext(Random random)
+        {
+            int total = Transitions.Values.Sum();
+            int pick = random.Next(total);
+
+            foreach(var node in Transitions.Keys)
+            {
+                pick -= Transitions[node];
+
+                if (pick <= 0)
+                {
+                    return node;
+                }
+            }
+
+            return null;
         }
     }
 
@@ -254,9 +341,9 @@ namespace Lx
             }
         }
 
-        public static List<Ngram> Parse(string input, int n, string pattern = "")
+        public static List<string> Parse(string input, int n, string pattern = "")
         {
-            var ngrams = new List<Ngram>();
+            var ngrams = new List<string>();
 
             if (!string.IsNullOrEmpty(input))
             {
@@ -268,7 +355,7 @@ namespace Lx
 
                     for(int i = 0; i + n <= input.Length; i++)
                     {
-                        ngrams.Add(new Ngram(input.Substring(i, n)));
+                        ngrams.Add(input.Substring(i, n));
                     }
                 }
             }
