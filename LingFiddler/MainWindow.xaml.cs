@@ -80,11 +80,11 @@ namespace Lx
 
         public List<Morph> CreatedWords { get; set; }
 
-        public Dictionary<string, int> Bigrams;
-        public Dictionary<string, int> Trigrams;
+        public Dictionary<string, int> Ngrams;
+        //public Dictionary<string, int> Trigrams;
 
-        public FiniteStateAutomoton BigramFSA;
-        public FiniteStateAutomoton TrigramFSA;
+        public FiniteStateAutomoton NgramFSA;
+        //public FiniteStateAutomoton TrigramFSA;
 
         public class NgramView
         {
@@ -114,19 +114,13 @@ namespace Lx
             }
         }
 
-        public List<NgramView> BigramView;
-        public List<NgramView> TrigramView;
+        public List<NgramView> NgramViewList;
+        //public List<NgramView> TrigramView;
 
         public MainWindow()
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
-
-            Bigrams = new Dictionary<string, int>();
-            Trigrams = new Dictionary<string, int>();
-
-            BigramFSA = new FiniteStateAutomoton();
-            TrigramFSA = new FiniteStateAutomoton();
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -199,33 +193,19 @@ namespace Lx
             {
                 LocalLexicon.Add(m.Value);
 
-                foreach (var bigram in Ngram.Parse(m.Value, 2))
-                {
-                    if (Bigrams.ContainsKey(bigram))
-                    {
-                        Bigrams[bigram] += 1;
-                    }
-                    else
-                    {
-                        Bigrams.Add(bigram, 1);
-                    }
-                }
+                //foreach (var trigram in Ngram.Parse(m.Value, 3))
+                //{
+                //    if (Trigrams.ContainsKey(trigram))
+                //    {
+                //        Trigrams[trigram] += 1;
+                //    }
+                //    else
+                //    {
+                //        Trigrams.Add(trigram, 1);
+                //    }
+                //}
 
-                BigramFSA.Parse(m.Value, 2);
-
-                foreach (var trigram in Ngram.Parse(m.Value, 3))
-                {
-                    if (Trigrams.ContainsKey(trigram))
-                    {
-                        Trigrams[trigram] += 1;
-                    }
-                    else
-                    {
-                        Trigrams.Add(trigram, 1);
-                    }
-                }
-
-                TrigramFSA.Parse(m.Value, 3);
+                //TrigramFSA.Parse(m.Value, 3);
             }
 
             UpdateWordGrid();
@@ -317,7 +297,7 @@ namespace Lx
             {
                 Header = "Graph",
                 Binding = new Binding("Graph"),
-                Width = 250
+                //Width = 250
             };
 
             WordGrid.Columns.Add(wordColumn);
@@ -363,29 +343,53 @@ namespace Lx
             UpdateWordGrid();
         }
 
-        private void Bigrams_Click(object sender, RoutedEventArgs e)
+        private void Ngrams_Click(object sender, RoutedEventArgs e)
         {
-            UpdateNgramGrid(Bigrams, BigramView);
-        }
+            if (CreatedWords == null)
+                CreatedWords = new List<Morph>();
+            else
+                CreatedWords.Clear();
 
-        private void Trigrams_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateNgramGrid(Trigrams, TrigramView);
+            if (Ngrams == null)
+                Ngrams = new Dictionary<string, int>();
+            else
+                Ngrams.Clear();
+            
+            NgramFSA = new FiniteStateAutomoton();
+
+            if (!int.TryParse(TextNgram.Text, out int n))
+            {
+                // Return an error message about validation
+                n = 1;
+            }
+
+            foreach (var lex in LocalLexicon.Keys)
+            {
+                foreach (var ngram in Ngram.Parse(lex.Graph, n))
+                {
+                    if (Ngrams.ContainsKey(ngram))
+                    {
+                        Ngrams[ngram] += 1;
+                    }
+                    else
+                    {
+                        Ngrams.Add(ngram, 1);
+                    }
+                }
+
+                NgramFSA.Parse(lex.Graph, n);
+            }
+
+            UpdateNgramGrid(Ngrams, NgramViewList);
         }
 
         private void CreateWords_Click(object sender, RoutedEventArgs e)
         {
-            if (CreatedWords == null)
-                CreatedWords = new List<Morph>();
-
-            var random = new Random();
-
-            
+            var random = new Random();            
 
             for (int w = 0; w <= 20; w++)
             {
-                CreatedWords.Add(new Morph(BigramFSA.CreateRandom(random)));
-                //CreatedWords.Add(new Morph(TrigramFSA.CreateRandom(random)));
+                CreatedWords.Add(new Morph(NgramFSA.CreateRandom(random)));
             }
 
             UpdateCreatedWordGrid();

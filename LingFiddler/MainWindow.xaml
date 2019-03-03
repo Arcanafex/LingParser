@@ -11,9 +11,9 @@
         <DockPanel DockPanel.Dock="Right">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
                 <Button x:Name="ButtonWords" Content="Words" Width="80" Click="Words_Click"/>
-                <Button x:Name="ButtonBigrams" Content="Bigrams"  Width="80" Margin="5, 0" Click="Bigrams_Click"/>
-                <Button x:Name="ButtonTrigrams" Content="Trigrams"  Width="80" Click="Trigrams_Click"/>
-                <Button x:Name="ButtonChars" Content="Chars"  Width="80" Margin="5, 0"/>
+                <Button x:Name="ButtonNgrams" Content="Ngrams"  Width="80" Margin="5, 0" Click="Ngrams_Click"/>
+                <Label Content="N =" HorizontalAlignment="Right"/>
+                <TextBox x:Name="TextNgram" Text="2"  Width="80" Margin="5, 0"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10">
                 <Button x:Name="Delete" Content="Delete" Width="80" Click="Delete_Click"/>
