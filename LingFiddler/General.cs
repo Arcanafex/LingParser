@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Lingx
+namespace Lx
 {
     public class Language
     {
@@ -14,7 +14,7 @@ namespace Lingx
         public string Autonym { get; set; }
         public List<string> Exonyms { get; set; }
 
-        public PragmaSet Ontology { get; set; }
+        public ConceptSet Ontology { get; set; }
         public ParadigmSet Morphology { get; set; }
         public Lexicon Lexicon { get; set; }
     }
@@ -92,7 +92,7 @@ namespace Lingx
         public List<Grapheme> GraphemeChain { get; set; }
         public List<Phoneme> PhonemeChain { get; set; }
         public HashSet<Expression> Expressions { get; set; }
-        public Pragma Meaning { get; set; }
+        public Concept Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
 
         public Morph(string graph)
@@ -115,6 +115,219 @@ namespace Lingx
         {
             return base.GetHashCode();
         }
+    }
+
+    public class FiniteStateAutomoton
+    {
+        public Node Start { get; private set; }
+        public Node End { get; private set; }
+        public Dictionary<string, Node> States { get; private set; }
+
+        public FiniteStateAutomoton()
+        {
+            Start = new Node("[");
+            End = new Node("]");
+            States = new Dictionary<string, Node>();
+        }
+
+        public void AddTransition(string from, string to)
+        {
+            Node startNode;
+            Node endNode;
+
+            if (from == "_")
+            {
+                startNode = Start;
+            }
+            else if (States.ContainsKey(from))
+            {
+                startNode = States[from];
+            }
+            else
+            {
+                startNode = new Node(from);
+                States.Add(from, startNode);
+            }
+
+            if (to == "_")
+            {
+                endNode = End;
+            }
+            else if (States.ContainsKey(to))
+            {
+                endNode = States[to];
+            }
+            else
+            {
+                endNode = new Node(to);
+                States.Add(to, endNode);
+            }
+
+
+        }
+    }
+
+    public class Node
+    {
+        public string Value { get; private set; }
+        public Dictionary<Node, int> Transitions { get; private set; }
+
+        public Node(string value)
+        {
+            Value = value;
+            Transitions = new Dictionary<Node, int>();
+        }
+
+        public void AddTransition(Node to, int weight = 1)
+        {
+            if (Transitions.ContainsKey(to))
+            {
+                Transitions[to] += weight;
+            }
+            else
+            {
+                Transitions.Add(to, weight);
+            }
+        }
+    }
+
+    public class Ngram
+    {
+        private string[] ngram;
+        private string value;
+
+        public Ngram(int n = 1)
+        {
+            ngram = new string[n];
+        }
+
+        public Ngram(string gram)
+        {
+            ngram = gram.ToCharArray().Select(n => n.ToString()).ToArray();
+        }
+
+        public string Onset
+        {
+            get
+            {
+                return ngram.First();
+            }
+            set
+            {
+                ngram[0] = string.IsNullOrEmpty(value) ? ngram[0] = string.Empty : ngram[0] = value;
+            }
+        }
+
+        public string Coda
+        {
+            get
+            {
+                return ngram.Last();
+            }
+            set
+            {
+                int i = ngram.Length - 1;
+                ngram[i] = string.IsNullOrEmpty(value) ? ngram[i] = string.Empty : ngram[i] = value;
+            }
+        }
+
+        public string this[int i]
+        {
+            get
+            {
+                return ngram[i];
+            }
+            set
+            {
+                ngram[i] = value;
+            }
+        }
+
+        public string Value
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(value))
+                    value = ToString();
+
+                return value;
+            }
+        }
+
+        public static List<Ngram> Parse(string input, int n, string pattern = "")
+        {
+            var ngrams = new List<Ngram>();
+
+            if (!string.IsNullOrEmpty(input))
+            {
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    // Only include edges in bigrams or longer
+                    if (n > 1)
+                        input = "_" + input + "_";
+
+                    for(int i = 0; i + n <= input.Length; i++)
+                    {
+                        ngrams.Add(new Ngram(input.Substring(i, n)));
+                    }
+                }
+            }
+
+            return ngrams;
+        }
+
+        public override string ToString()
+        {
+            return ToString();
+        }
+
+        public string ToString(string separator = "", string edges = "_")
+        {
+            return ToString(separator, edges, edges);
+        }
+
+        public string ToString(string separator, string left, string right)
+        {
+            StringBuilder ngramstring = new StringBuilder();
+
+            for (int n = 0; n < ngram.Length; n++)
+            {
+                if (n == 0)
+                {
+                    ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? left : ngram[n]);
+                }
+                else 
+                {
+                    ngramstring.Append(separator);
+
+                    if (n == ngram.Length - 1)
+                    {
+                        ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? right : ngram[n]);
+                    }
+                    else
+                    {
+                        ngramstring.Append(ngram[n]);
+                    }
+                }
+            }
+
+            return ngramstring.ToString();
+        }
+
+        //public override bool Equals(object obj)
+        //{
+        //    if (obj is Ngram)
+        //    {
+        //        var nobj = obj as Ngram;
+
+        //        return this.ToString() == nobj.ToString();
+        //    }
+        //    else
+        //    {
+        //        return false;
+        //    }
+        //}
+
     }
 
     public class Lexicon : Dictionary<Morph, int>
@@ -218,14 +431,13 @@ namespace Lingx
 
     public class Phonology { }
 
-    public class Pragma
+    public class Concept
     {
         public string Symbol { get; set; }
     }
 
-    public class PragmaSet : HashSet<Pragma>
+    public class ConceptSet : HashSet<Concept>
     {
-        //public HashSet<Pragma> Pragmata { get; set; }
     }
 
     public class Feature { }
@@ -239,8 +451,6 @@ namespace Lingx
 
     public class ParadigmSet : HashSet<Paradigm>
     {
-        // The set of Paradigms
-        //public HashSet<Paradigm> Paradigms { get; set; }
     }
 
     //Discource set as a way of specifying features for a sequence of Expressions.

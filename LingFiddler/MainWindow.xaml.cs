@@ -15,7 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 
-namespace Lingx
+namespace Lx
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -74,17 +74,50 @@ namespace Lingx
         {
             get
             {
-
-
                 return LocalLexicon.Keys.OrderBy(w => w.Graph).ToList();
             }
         }
+
+        public Dictionary<Ngram, int> Bigrams;
+        public Dictionary<Ngram, int> Trigrams;
+
+        public class NgramView
+        {
+            public string Onset { get; set; }
+            public string Coda { get; set; }
+            public string Value { get; set; }
+            public int Weight { get; set; }
+
+            public static List<NgramView> GetViewList(Dictionary<Ngram, int> ngrams)
+            {
+                var outList = new List<NgramView>();
+
+                foreach (var ngram in ngrams.Keys)
+                {
+                    outList.Add(
+                        new NgramView()
+                        {
+                            Onset = ngram.Onset,
+                            Coda = ngram.Coda,
+                            Value = ngram.Value,
+                            Weight = ngrams[ngram]
+                        }
+                        );
+                }
+
+                return outList;
+            }
+        }
+
+        public List<NgramView> BigramView;
+        public List<NgramView> TrigramView;
 
         public MainWindow()
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
-            //FilterChars.Text = new string (Morph.FilterChars);
+            Bigrams = new Dictionary<Ngram, int>();
+            Trigrams = new Dictionary<Ngram, int>();
         }
 
         private void Load_Click(object sender, RoutedEventArgs e)
@@ -152,11 +185,39 @@ namespace Lingx
         private void GetWords_Click(object sender, RoutedEventArgs e)
         {
             LocalLexicon.Clear();
-            //Morph.FilterChars = FilterChars.Text.ToCharArray();
 
             foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
                 LocalLexicon.Add(m.Value);
+
+                foreach (var bigram in Ngram.Parse(m.Value, 2))
+                {
+                    var key = Bigrams.Keys.FirstOrDefault(k => k.Value == bigram.Value);
+
+                    if (key != null)
+                    {
+                        Bigrams[key] += 1;
+                    }
+                    else
+                    {
+                        Bigrams.Add(bigram, 1);
+                    }
+                }
+                
+                foreach (var trigram in Ngram.Parse(m.Value, 3))
+                {
+                    var key = Trigrams.Keys.FirstOrDefault(k => k.Value == trigram.Value);
+
+                    if (key != null)
+                    {
+                        Trigrams[key] += 1;
+                    }
+                    else
+                    {
+                        Trigrams.Add(trigram, 1);
+                    }
+                }
+                
             }
 
             UpdateWordGrid();
@@ -164,6 +225,7 @@ namespace Lingx
 
         private void UpdateWordGrid()
         {
+            WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
 
             DataGridTextColumn wordColumn = new DataGridTextColumn()
@@ -180,19 +242,62 @@ namespace Lingx
                 Width = 50
             };
 
-            //DataGridTextColumn freqColumn = new DataGridTextColumn()
-            //{
-            //    Header = "Frequency",
-            //    Binding = new Binding("Frequency"),
-            //    Width = 50
+            DataGridTextColumn freqColumn = new DataGridTextColumn()
+            {
+                Header = "Frequency",
+                Binding = new Binding("Frequency"),
+                Width = 50
 
-            //};
+            };
 
             WordGrid.Columns.Add(wordColumn);
             WordGrid.Columns.Add(lengthColumn);
-            //WordGrid.Columns.Add(freqColumn);
+            WordGrid.Columns.Add(freqColumn);
 
             WordGrid.ItemsSource = WordList;
+        }
+
+        private void UpdateNgramGrid(Dictionary<Ngram, int> source, List<NgramView> target)
+        {
+            target = new List<NgramView>(NgramView.GetViewList(source));
+
+            WordGrid.ItemsSource = null;
+            WordGrid.Columns.Clear();
+
+            DataGridTextColumn onsetColumn = new DataGridTextColumn()
+            {
+                Header = "Onset",
+                Binding = new Binding("Onset"),
+                Width = 50
+            };
+
+            DataGridTextColumn codaColumn = new DataGridTextColumn()
+            {
+                Header = "Coda",
+                Binding = new Binding("Coda"),
+                Width = 50
+            };
+
+            DataGridTextColumn valueColumn = new DataGridTextColumn()
+            {
+                Header = "Value",
+                Binding = new Binding("Value"),
+                Width = 50
+            };
+
+            DataGridTextColumn weightColumn = new DataGridTextColumn()
+            {
+                Header = "Weight",
+                Binding = new Binding("Weight"),
+                Width = 50
+            };
+
+            WordGrid.Columns.Add(onsetColumn);
+            WordGrid.Columns.Add(codaColumn);
+            WordGrid.Columns.Add(valueColumn);
+            WordGrid.Columns.Add(weightColumn);
+
+            WordGrid.ItemsSource = target;
         }
 
         private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -227,6 +332,26 @@ namespace Lingx
             // When the RichTextBox loses focus the user can no longer see the selection.
             // This is a hack to make the RichTextBox think it did not lose focus.
             e.Handled = true;
+        }
+
+        private void Words_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateWordGrid();
+        }
+
+        private void Bigrams_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateNgramGrid(Bigrams, BigramView);
+        }
+
+        private void Trigrams_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateNgramGrid(Trigrams, TrigramView);
+        }
+
+        private void CreateWords_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
