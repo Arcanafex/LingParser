@@ -52,6 +52,6 @@
                 <Button Name="GetWords" Content="Parse" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="75" Margin="5,0" Click="GetWords_Click"/>
             </DockPanel>
         </StackPanel>
-        <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentTextUpdated"/>
+        <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentTextUpdated" AcceptsReturn="True" AcceptsTab="True"/>
     </DockPanel>
 </Window>

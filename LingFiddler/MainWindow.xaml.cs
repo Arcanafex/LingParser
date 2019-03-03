@@ -79,12 +79,8 @@ namespace Lx
         }
 
         public List<Morph> CreatedWords { get; set; }
-
         public Dictionary<string, int> Ngrams;
-        //public Dictionary<string, int> Trigrams;
-
         public FiniteStateAutomoton NgramFSA;
-        //public FiniteStateAutomoton TrigramFSA;
 
         public class NgramView
         {
@@ -107,7 +103,7 @@ namespace Lx
                             Value = ngram,
                             Weight = ngrams[ngram]
                         }
-                        );
+                    );
                 }
 
                 return outList;
@@ -115,7 +111,6 @@ namespace Lx
         }
 
         public List<NgramView> NgramViewList;
-        //public List<NgramView> TrigramView;
 
         public MainWindow()
         {
@@ -192,20 +187,6 @@ namespace Lx
             foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
             {
                 LocalLexicon.Add(m.Value);
-
-                //foreach (var trigram in Ngram.Parse(m.Value, 3))
-                //{
-                //    if (Trigrams.ContainsKey(trigram))
-                //    {
-                //        Trigrams[trigram] += 1;
-                //    }
-                //    else
-                //    {
-                //        Trigrams.Add(trigram, 1);
-                //    }
-                //}
-
-                //TrigramFSA.Parse(m.Value, 3);
             }
 
             UpdateWordGrid();
@@ -297,7 +278,7 @@ namespace Lx
             {
                 Header = "Graph",
                 Binding = new Binding("Graph"),
-                //Width = 250
+                Width = 250
             };
 
             WordGrid.Columns.Add(wordColumn);
@@ -394,7 +375,5 @@ namespace Lx
 
             UpdateCreatedWordGrid();
         }
-
-
     }
 }
