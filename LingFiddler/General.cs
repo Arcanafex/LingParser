@@ -122,13 +122,15 @@ namespace Lx
     {
         public Node<T> Start { get; private set; }
         public Node<T> End { get; private set; }
-        public Dictionary<T[], Node<T>> States { get; private set; }
+        public HashSet<Node<T>> States { get; private set; }
+        //public Dictionary<T[], Node<T>> States { get; private set; }
 
         public FiniteStateAutomoton()
         {
             Start = Node<T>.Start;
             End = Node<T>.End;
-            States = new Dictionary<T[], Node<T>>();
+            States = new HashSet<Node<T>>();
+            //States = new Dictionary<T[], Node<T>>();
         }
 
         public void AddTransition(T[] from, T[] to)
@@ -140,28 +142,40 @@ namespace Lx
             {
                 startNode = Start;
             }
-            else if (States.ContainsKey(from))
-            {
-                startNode = States[from];
-            }
+            //else if (States.ContainsKey(from))
+            //{
+            //    startNode = States[from];
+            //}
             else
             {
-                startNode = new Node<T>(from);
-                States.Add(from, startNode);
+                startNode = States.FirstOrDefault(n => n.Value.SequenceEqual(from));
+
+                if (startNode == null)
+                {
+                    startNode = new Node<T>(from);
+                }
+
+                States.Add(startNode);
+                //States.Add(from, startNode);
             }
 
             if (to == null)
             {
                 endNode = End;
             }
-            else if (States.ContainsKey(to))
-            {
-                endNode = States[to];
-            }
+            //else if (States.ContainsKey(to))
+            //{
+            //    endNode = States[to];
+            //}
             else
             {
-                endNode = new Node<T>(to);
-                States.Add(to, endNode);
+                endNode = States.FirstOrDefault(n => n.Value.SequenceEqual(to));
+
+                if (endNode == null)
+                    endNode = new Node<T>(to);
+
+                States.Add(endNode);
+                //States.Add(to, endNode);
             }
 
             startNode.AddTransition(endNode);
