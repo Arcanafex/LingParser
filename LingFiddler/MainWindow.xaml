@@ -20,12 +20,18 @@
                 <TextBox Text="Language" Width="230" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10, 0">
-                <Button x:Name="ParseNgrams" Content="Ngrams"  Width="80" Click="ParseNgrams_Click"/>
-                <Label Content="N =" HorizontalAlignment="Right"/>
-                <TextBox x:Name="SizeNgram" Text="2"  Width="20" Margin="5, 0, 20, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NgramSize_Updated"/>
-                <Button x:Name="CreateWords" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateWords_Click"/>
-                <TextBox x:Name="SizeGenerateWords" Text="10"  Width="60" Margin="5, 0, 10, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="GenerateWordsSize_Updated"/>
-                <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Margin="5, 0" Click="ClearGeneratedWords_Click"/>
+                <StackPanel>
+                    <Button x:Name="ParseNgrams" Content="Ngrams"  Width="80" Height="25" Click="ParseNgrams_Click"/>
+                    <StackPanel Orientation="Horizontal" Margin="5, 2" HorizontalAlignment="Center">
+                        <Label Content="N ="/>
+                        <TextBox x:Name="SizeNgram" Text="2"  Width="20" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NgramSize_Updated"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Center" Margin="5, 0">
+                    <Button x:Name="CreateWords" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Height="25" Click="GenerateWords_Click"/>
+                    <TextBox x:Name="SizeGenerateWords" Text="10"  Width="60" Margin="5, 2" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="GenerateWordsSize_Updated"/>
+                </StackPanel>
+                <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Height="25" Margin="5, 0" VerticalAlignment="Top" Click="ClearGeneratedWords_Click"/>
             </StackPanel>
             <DataGrid Name="WordGrid" Width="400" Margin="10" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" />
         </DockPanel>
@@ -35,18 +41,36 @@
             <Button Content="Generated" Width="80" Click="ShowGeneratedLines_Click"/>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
-            <StackPanel Orientation="Horizontal" Margin="10, 0, 10, 5">
-                <StackPanel Width="120">
-                    <Label Content="Word Estimate" Height="23" VerticalAlignment="Center"/>
-                    <Label Content="Unique Chars" Height="23" VerticalAlignment="Center"/>
-                    <Label Content="Chars" Height="23" VerticalAlignment="Center"/>
+            <DockPanel Margin="10, 0, 10, 5">
+                <StackPanel DockPanel.Dock="Left" Width="120">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountChars" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Chars"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountWords" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Words"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountLines" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Lines"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel Width="80">
-                    <TextBlock Name="WordCount" Text="0" Height="23" VerticalAlignment="Center"/>
-                    <TextBlock Name="UniqueCharCount" Text="0" Height="23" VerticalAlignment="Center"/>
-                    <TextBlock Name="CharCount" Text="0" Height="23" VerticalAlignment="Center"/>
+                <StackPanel DockPanel.Dock="Left" Width="140">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountUniqueChars" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Unique Chars"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountUniqueWords" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Unique Words"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CountParagraphs" Text="0" Width="60" TextAlignment="Right" VerticalAlignment="Center"/>
+                        <Label Content="Paragraphs"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel>
+                <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal">
                         <Label Content="Line Pattern" Width="120"/>
                         <TextBox Name="LinePattern" Text=".+?[\.\?\!]+" Width="200" VerticalAlignment="Center" TextChanged="CurrentLinePattern_Updated"/>
@@ -60,13 +84,24 @@
                         <TextBox Name="PunctuationPattern" Text="[',.:;]+" Width="200" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
+            </DockPanel>
+            <StackPanel Margin="10, 5" Orientation="Horizontal">
+                <Button Content="Parse Words" Width="80" Height="25" VerticalAlignment="Top" Click="ParseText_Click"/>
+                <StackPanel Margin="5, 0">
+                    <Button Content="Parse Model" Width="80" Height="25" Click="ParseLines_Click"/>
+                    <StackPanel Orientation="Horizontal" Margin="5, 2" HorizontalAlignment="Center">
+                        <Label Content="N ="/>
+                        <TextBox x:Name="SizeMarkovChain" Text="2"  Width="20" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="MarkovChainSize_Updated"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel>
+                    <Button Content="Generate" Width="80" Height="25" Click="GenerateLines_Click"/>
+                    <TextBox x:Name="SizeGenerateLines" Text="5"  Width="60" Margin="5, 2" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="GenerateLinesSize_Updated"/>
+                </StackPanel>
             </StackPanel>
-            <TextBox Name="PathBox" Margin="10, 5" Text="Path"/>
             <DockPanel Margin="10">
-                <Button Name="LoadText" Content="Load" DockPanel.Dock="Left" Width="80" Click="LoadText_Click"/>
-                <Button Name="GetWords" Content="Parse" DockPanel.Dock="Left" HorizontalAlignment="Right" Width="80" Margin="5,0" Click="ParseText_Click"/>
-                <Button Name="CreateLines" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateLines_Click"/>
-                <Button Name="ParseLines" Content="Parse Model" DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="5, 0" Width="80" Click="ParseLines_Click"/>
+                <Button Name="LoadText" Content="Load" DockPanel.Dock="Right" Width="80" Height="25" Click="LoadText_Click"/>
+                <TextBox Name="PathBox" Margin="0, 2" Height="25" Text="Path" VerticalContentAlignment="Center"/>
             </DockPanel>
         </StackPanel>
         <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentText_Updated" AcceptsReturn="True" AcceptsTab="True"/>

@@ -46,15 +46,32 @@ namespace Lx
             }
         }
 
-        public int CurrentTextLineCount
+        internal int currentTextLineCount = 0;
+        public string CurrentTextLineCount
         {
-            get { return CurrentText.ToCharArray().Count(c => c == '\n') + 1; }
+            get { return currentTextLineCount.ToString(); }
         }
         public int CurrentWordCount { get; set; }
         public HashSet<char> CurrentCharSet { get; set; }
+        public string UniqueWordCount
+        {
+            get
+            {
+                if (LocalText != null && LocalText.Lexicon != null)
+                {
+                    return LocalText.Lexicon.Keys.Count.ToString();
+                }
+                else
+                {
+                    return "0";
+                }
+            }
+        }
 
         internal int currentNgramSize = 2;
         internal int currentGenerateWordsSize = 10;
+        internal int currentMarkovChainSize = 2;
+        internal int currentGenerateLinesSize = 5;
 
         internal enum ViewMode { Text, Lines, Generated }
         internal ViewMode currentViewMode = ViewMode.Text;
@@ -166,10 +183,14 @@ namespace Lx
         public MainWindow()
         {
             InitializeComponent();
+            this.DataContext = this;
+
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
 
             SizeNgram.Text = currentNgramSize.ToString();
             SizeGenerateWords.Text = currentGenerateWordsSize.ToString();
+            SizeMarkovChain.Text = currentMarkovChainSize.ToString();
+            SizeGenerateLines.Text = currentGenerateLinesSize.ToString();
         }
 
         private void LoadText_Click(object sender, RoutedEventArgs e)
@@ -239,9 +260,9 @@ namespace Lx
                 CurrentText = TextBlock.Text;
 
                 var textChars = TextBlock.Text.ToCharArray();
-                CharCount.Text = textChars.Length.ToString();
+                CountChars.Text = textChars.Length.ToString();
                 CurrentCharSet = new HashSet<char>(textChars.Distinct());
-                UniqueCharCount.Text = CurrentCharSet.Count().ToString();
+                CountUniqueChars.Text = CurrentCharSet.Count().ToString();
 
                 UpdateWordCount();
             }
@@ -291,6 +312,22 @@ namespace Lx
             }
         }
 
+        private void MarkovChainSize_Updated(object sender, TextChangedEventArgs e)
+        {
+            int n = currentMarkovChainSize;
+
+            if (!int.TryParse(SizeNgram.Text, out n))
+            {
+                // Return an error message about validation
+                SizeMarkovChain.Text = currentMarkovChainSize.ToString();
+            }
+            else
+            {
+                if (currentMarkovChainSize != n)
+                    currentMarkovChainSize = n;
+            }
+        }
+
         private void GenerateWordsSize_Updated(object sender, TextChangedEventArgs e)
         {
             int n = currentGenerateWordsSize;
@@ -307,6 +344,23 @@ namespace Lx
             }
         }
 
+        private void GenerateLinesSize_Updated(object sender, TextChangedEventArgs e)
+        {
+            int n = currentGenerateLinesSize;
+
+            if (!int.TryParse(SizeGenerateLines.Text, out n))
+            {
+                // Return an error message about validation
+                SizeGenerateLines.Text = currentGenerateLinesSize.ToString();
+            }
+            else
+            {
+                if (currentGenerateLinesSize != n)
+                    currentGenerateLinesSize = n;
+            }
+        }
+
+
         #endregion
 
         #region Update
@@ -319,8 +373,12 @@ namespace Lx
 
         private void UpdateWordCount()
         {
-            CurrentWordCount = String.IsNullOrEmpty(CurrentText) ? 0 : CurrentWordPattern.Matches(CurrentText).Count;
-            WordCount.Text = CurrentWordCount.ToString();
+            CurrentWordCount = CurrentWordPattern.Matches(CurrentText).Count;
+            currentTextLineCount = CurrentLinePattern.Matches(CurrentText).Count;
+
+            CountWords.Text = CurrentWordCount.ToString();
+            CountUniqueWords.Text = UniqueWordCount;
+            CountLines.Text = CurrentTextLineCount;
         }
 
         private void UpdateLocalLexicon()
@@ -550,6 +608,7 @@ namespace Lx
             }
 
             UpdateLocalLexicon();
+            CountUniqueWords.Text = UniqueWordCount;
         }
 
         private void ParseLexiconNgramFSA(Lexicon lexicon)
@@ -594,7 +653,7 @@ namespace Lx
             {
                 var morphArray = exp.Select(m => m.Graph).ToArray();
 
-                localHMMFSA.Parse(morphArray, currentNgramSize);
+                localHMMFSA.Parse(morphArray, currentMarkovChainSize);
             }            
         }
 
@@ -624,7 +683,6 @@ namespace Lx
             }
         }
 
-
         private void GenerateWords_Click(object sender, RoutedEventArgs e)
         {
             GenerateWords(currentGenerateWordsSize);
@@ -633,10 +691,20 @@ namespace Lx
 
         private void GenerateLines_Click(object sender, RoutedEventArgs e)
         {
-            var words = localHMMFSA.GenerateRandomChain();
+            var builder = new StringBuilder();
+            var random = new Random();
 
-            string line = string.Join(" ", words);
-            UpdateTextView(line, ViewMode.Generated);
+            for (int l = 0; l < currentGenerateLinesSize; l++)
+            {
+                var words = localHMMFSA.GenerateRandomChain(random);
+
+                string line = string.Join(" ", words);
+
+                builder.Append(line);
+                builder.AppendLine();
+            }
+
+            UpdateTextView(builder.ToString(), ViewMode.Generated);
         }
 
         private void ClearGeneratedWords_Click(object sender, RoutedEventArgs e)
