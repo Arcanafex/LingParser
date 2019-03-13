@@ -23,7 +23,7 @@
                 <Button x:Name="ParseNgrams" Content="Ngrams"  Width="80" Click="ParseNgrams_Click"/>
                 <Label Content="N =" HorizontalAlignment="Right"/>
                 <TextBox x:Name="SizeNgram" Text="2"  Width="20" Margin="5, 0, 20, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NgramSize_Updated"/>
-                <Button x:Name="CreateWords" Content="Create" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateWords_Click"/>
+                <Button x:Name="CreateWords" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateWords_Click"/>
                 <TextBox x:Name="SizeGenerateWords" Text="10"  Width="60" Margin="5, 0, 10, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="GenerateWordsSize_Updated"/>
                 <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Margin="5, 0" Click="ClearGeneratedWords_Click"/>
             </StackPanel>

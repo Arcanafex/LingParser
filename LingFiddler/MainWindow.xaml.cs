@@ -472,7 +472,7 @@ namespace Lx
 
         private void ShowGeneratedLines_Click(object sender, RoutedEventArgs e)
         {
-            UpdateTextView("Nothing to see here yet.", ViewMode.Generated);
+            //UpdateTextView("Nothing to see here yet.", ViewMode.Generated);
         }
 
         private void ShowWords_Click(object sender, RoutedEventArgs e)
@@ -505,6 +505,11 @@ namespace Lx
         {
             ParseLexiconNgramFSA(LocalLexicon);
             UpdateNgramGrid(localNgrams, NgramViewList);
+        }
+
+        private void ParseLines_Click(object sender, RoutedEventArgs e)
+        {
+            ParseTextHMM(LocalText);
         }
 
         private void ParseCurrentText()
@@ -628,9 +633,10 @@ namespace Lx
 
         private void GenerateLines_Click(object sender, RoutedEventArgs e)
         {
-            var random = new Random();
+            var words = localHMMFSA.GenerateRandomChain();
 
-            
+            string line = string.Join(" ", words);
+            UpdateTextView(line, ViewMode.Generated);
         }
 
         private void ClearGeneratedWords_Click(object sender, RoutedEventArgs e)
@@ -645,10 +651,5 @@ namespace Lx
 
 
         #endregion
-
-        private void ParseLines_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
     }
 }
