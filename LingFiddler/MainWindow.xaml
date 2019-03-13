@@ -5,23 +5,35 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Lx"
         mc:Ignorable="d"
-        Title="Word Harvester" Height="800" Width="1080">
+        Title="Ling Machine" Height="800" Width="1080">
 
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
-                <Button x:Name="ButtonWords" Content="Words" Width="80" Click="Words_Click"/>
-                <Button x:Name="ButtonNgrams" Content="Ngrams"  Width="80" Margin="5, 0" Click="Ngrams_Click"/>
-                <Label Content="N =" HorizontalAlignment="Right"/>
-                <TextBox x:Name="TextNgram" Text="2"  Width="80" Margin="5, 0"/>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10, 10, 10, 0" Height="25">
+                <Button x:Name="ShowWords" Content="Words" Width="80" Click="ShowWords_Click"/>
+                <Button x:Name="ShowNgrams" Content="Ngrams"  Width="80" Margin="5, 0" Click="ShowNgrams_Click"/>
+                <Button x:Name="ShowCreateWords" Content="Generated" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="ShowCreatedWords_Click"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10">
                 <Button x:Name="Delete" Content="Delete" Width="80" Click="Delete_Click"/>
                 <Button x:Name="SaveWords" Content="Save"  Width="80"  Margin="5, 0" Click="SaveWords_Click"/>
                 <TextBox Text="Language" Width="230" />
             </StackPanel>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10, 0">
+                <Button x:Name="ParseNgrams" Content="Ngrams"  Width="80" Click="ParseNgrams_Click"/>
+                <Label Content="N =" HorizontalAlignment="Right"/>
+                <TextBox x:Name="SizeNgram" Text="2"  Width="20" Margin="5, 0, 20, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NgramSize_Updated"/>
+                <Button x:Name="CreateWords" Content="Create" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateWords_Click"/>
+                <TextBox x:Name="SizeGenerateWords" Text="10"  Width="60" Margin="5, 0, 10, 0" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="GenerateWordsSize_Updated"/>
+                <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Margin="5, 0" Click="ClearGeneratedWords_Click"/>
+            </StackPanel>
             <DataGrid Name="WordGrid" Width="400" Margin="10" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" />
         </DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10, 10, 10, 0" Height="25">
+            <Button Content="Text" Width="80" Click="ShowText_Click"/>
+            <Button Content="Lines" Width="80" Margin="5, 0" Click="ShowLines_Click"/>
+            <Button Content="Generated" Width="80" Click="ShowGeneratedLines_Click"/>
+        </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
             <StackPanel Orientation="Horizontal" Margin="10, 0, 10, 5">
                 <StackPanel Width="120">
@@ -37,21 +49,26 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Label Content="Line Pattern" Width="120"/>
-                        <TextBox Name="LinePattern" Text=".+[\.\?\!]" Width="200" VerticalAlignment="Center"/>
+                        <TextBox Name="LinePattern" Text=".+?[\.\?\!]+" Width="200" VerticalAlignment="Center" TextChanged="CurrentLinePattern_Updated"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <Label Content="Word Pattern" Width="120"/>
-                        <TextBox Name="WordPattern" Text="[^\W0-9_]+" Width="200" VerticalAlignment="Center" TextChanged="UpdateCurrentWordPattern"/>
+                        <TextBox Name="WordPattern" Text="[^\W0-9_]+" Width="200" VerticalAlignment="Center" TextChanged="CurrentWordPattern_Updated"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Punctuation Pattern" Width="120"/>
+                        <TextBox Name="PunctuationPattern" Text="[',.:;]+" Width="200" VerticalAlignment="Center"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
             <TextBox Name="PathBox" Margin="10, 5" Text="Path"/>
             <DockPanel Margin="10">
-                <Button Name="LoadText" Content="Load" DockPanel.Dock="Left" Width="75" Click="Load_Click"/>
-                <Button Name="CreateWords" Content="Create" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="75" Click="CreateWords_Click"/>
-                <Button Name="GetWords" Content="Parse" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="75" Margin="5,0" Click="GetWords_Click"/>
+                <Button Name="LoadText" Content="Load" DockPanel.Dock="Left" Width="80" Click="LoadText_Click"/>
+                <Button Name="GetWords" Content="Parse" DockPanel.Dock="Left" HorizontalAlignment="Right" Width="80" Margin="5,0" Click="ParseText_Click"/>
+                <Button Name="CreateLines" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="GenerateLines_Click"/>
+                <Button Name="ParseLines" Content="Parse Model" DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="5, 0" Width="80" Click="ParseLines_Click"/>
             </DockPanel>
         </StackPanel>
-        <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentTextUpdated" AcceptsReturn="True" AcceptsTab="True"/>
+        <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentText_Updated" AcceptsReturn="True" AcceptsTab="True"/>
     </DockPanel>
 </Window>

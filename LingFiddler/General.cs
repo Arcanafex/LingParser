@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -98,7 +99,7 @@ namespace Lx
         public Morph(string graph)
         {
             this.Graph = graph;
-        }
+        }            
 
         public override bool Equals(object obj)
         {
@@ -117,28 +118,25 @@ namespace Lx
         }
     }
 
-    public class FiniteStateAutomoton
+    public class FiniteStateAutomoton<T>
     {
-        public Node Start { get; private set; }
-        public Node End { get; private set; }
-        public Dictionary<string, Node> States { get; private set; }
-
-        public const string START = "[";
-        public const string END = "]";
+        public Node<T> Start { get; private set; }
+        public Node<T> End { get; private set; }
+        public Dictionary<T[], Node<T>> States { get; private set; }
 
         public FiniteStateAutomoton()
         {
-            Start = new Node("[");
-            End = new Node("]");
-            States = new Dictionary<string, Node>();
+            Start = Node<T>.Start;
+            End = Node<T>.End;
+            States = new Dictionary<T[], Node<T>>();
         }
 
-        public void AddTransition(string from, string to)
+        public void AddTransition(T[] from, T[] to)
         {
-            Node startNode;
-            Node endNode;
+            Node<T> startNode;
+            Node<T> endNode;
 
-            if (from == START)
+            if (from == null)
             {
                 startNode = Start;
             }
@@ -148,11 +146,11 @@ namespace Lx
             }
             else
             {
-                startNode = new Node(from);
+                startNode = new Node<T>(from);
                 States.Add(from, startNode);
             }
 
-            if (to == END)
+            if (to == null)
             {
                 endNode = End;
             }
@@ -162,56 +160,56 @@ namespace Lx
             }
             else
             {
-                endNode = new Node(to);
+                endNode = new Node<T>(to);
                 States.Add(to, endNode);
             }
 
             startNode.AddTransition(endNode);
         }
 
-        public void Parse(string input, int n, string pattern = "")
+        public void Parse(T[] input, int n)
         {
-            var ngrams = new Queue<string>();
+            var ngrams = new Queue<T[]>();
 
-            if (!string.IsNullOrEmpty(input))
+            if (input != null && input as IEnumerable != null)
             {
-                if (string.IsNullOrEmpty(pattern))
+                if (n > input.Length)
                 {
-                    for (int i = 0; i + n <= input.Length; i++)
-                    {
-                        ngrams.Enqueue(input.Substring(i, n));
-                    }
+                    ngrams.Enqueue(input);
                 }
                 else
                 {
-                    // regex pattern
+                    for (int i = 0; i + n <= input.Length; i++)
+                    {
+                        ngrams.Enqueue(input.Slice(i, n));
+                    }
                 }
             }
 
-            string from = START;
+            T[] from = null;
 
             while (ngrams.Count > 0)
             {
-                string to = ngrams.Dequeue();
+                T[] to = ngrams.Dequeue();
                 AddTransition(from, to);
                 from = to;
             }
 
-            AddTransition(from, END);
+            AddTransition(from, null);
         }
 
-        public string CreateRandom()
+        public List<T> GenerateRandomChain()
         {
             var random = new Random();
 
-            return CreateRandom(random);
+            return GenerateRandomChain(random);
         }
 
-        public string CreateRandom(Random random)
+        public List<T> GenerateRandomChain(Random random)
         {
-            var ngramQueue = new Queue<string>();
+            var ngramQueue = new Queue<T[]>();
 
-            Node currentNode = Start.GetNext(random);
+            Node<T> currentNode = Start.GetNext(random);
 
             while (currentNode == End)
             {
@@ -224,30 +222,61 @@ namespace Lx
                 currentNode = currentNode.GetNext(random);                 
             }
 
-            var stringBuilder = new StringBuilder(ngramQueue.Dequeue());
+
+            var output = new List<T>(ngramQueue.Dequeue());
 
             while (ngramQueue.Count > 0)
             {
-                string nextNgram = ngramQueue.Dequeue();
-                stringBuilder.Append(nextNgram.Last());
+                output.Add(ngramQueue.Dequeue().Last());
             }
 
-            return stringBuilder.ToString();
+            return output;
         }
     }
 
-    public class Node
+    public class Node<T>
     {
-        public string Value { get; private set; }
-        public Dictionary<Node, int> Transitions { get; private set; }
-
-        public Node(string value)
+        public enum NodeType { Start, End, Value}
+        internal readonly NodeType type;
+        public NodeType Type
         {
-            Value = value;
-            Transitions = new Dictionary<Node, int>();
+            get { return type; }
         }
 
-        public void AddTransition(Node to, int weight = 1)
+        public T[] Value { get; private set; }
+        public Dictionary<Node<T>, int> Transitions { get; private set; }
+
+        public Node(T[] value)
+        {
+            type = NodeType.Value;
+            Value = value;
+            Transitions = new Dictionary<Node<T>, int>();
+        }
+
+        internal Node(NodeType type)
+        {
+            type = NodeType.Value;
+            Transitions = new Dictionary<Node<T>, int>();
+        }
+
+        public static Node<T> Start
+        {
+            get
+            {
+                return new Node<T>(NodeType.Start);
+            }
+        }
+
+        public static Node<T> End
+        {
+            get
+            {
+                return new Node<T>(NodeType.End);
+            }
+        }
+
+
+        public void AddTransition(Node<T> to, int weight = 1)
         {
             if (Transitions.ContainsKey(to))
             {
@@ -259,7 +288,7 @@ namespace Lx
             }
         }
 
-        public Node GetNext(Random random)
+        public Node<T> GetNext(Random random)
         {
             int total = Transitions.Values.Sum();
             int pick = random.Next(total);
@@ -419,10 +448,10 @@ namespace Lx
 
     public class Lexicon : Dictionary<Morph, int>
     {
-        public void Add(string word, int weight = 1)
+        public Morph Add(string word, int weight = 1)
         {
             if (String.IsNullOrEmpty(word))
-                return;
+                return null;
 
             var thisWord = Keys.FirstOrDefault(w => w.Graph == word);
 
@@ -436,6 +465,8 @@ namespace Lx
             {
                 this[thisWord] += weight;
             }
+
+            return thisWord;
         }
 
         public void Merge(Morph target, Morph mergee)
@@ -486,10 +517,14 @@ namespace Lx
 
     public class Expression : List<Morph>
     {
+        public Expression(string rawExpression = "")
+        {
+            Graph = rawExpression;
+        }
+
         public enum GrammaticalityJudgement { Good, Bad, Weird }
 
         public string Graph { get; set; }
-        //public List<Morph> MorphChain { get; set; }
         public HashSet<string> Translations { get; set; }
         public GrammaticalityJudgement Judgement { get; set; }
         public Language Language { get; set; }
@@ -497,6 +532,11 @@ namespace Lx
         // context? This may be retrieved from Text set
         // discourse context? e.g. semantic/pragmatic assumptions affection expression
         // leaving aside issues of code-switching for now, wrt Language source
+
+        public override string ToString()
+        {
+            return string.Join(" ", this);
+        }
     }
 
     public class Text : List<Expression>
@@ -504,6 +544,21 @@ namespace Lx
         //a set of Expressions
         public string Title { get; set; }
         public Lexicon Lexicon { get; set; }
+        public Lexicon Morphosyntax { get; set; }
+
+        public Text()
+        {
+            Lexicon = new Lexicon();
+            Morphosyntax = new Lexicon
+            {
+                string.Empty
+            };
+        }
+
+        public override string ToString()
+        {
+            return string.Join("\n", this);
+        }
     }
 
     public class Corpus : HashSet<Text>
@@ -541,4 +596,25 @@ namespace Lx
     }
 
     //Discource set as a way of specifying features for a sequence of Expressions.
+
+    public static class Extensions
+    {
+        public static T[] Slice<T>(this T[] source, int start, int length)
+        {
+            if (length < 0)
+            {
+                return null;
+            }
+
+            T[] slice = new T[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                slice[i] = source[i + start];
+            }
+
+            return slice;
+        }
+    }
+
 }

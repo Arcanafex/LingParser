@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Data.SQLite;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,38 +18,65 @@ using System.IO;
 
 namespace Lx
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
-        public string dbSource = "language.db";//"Data Source=database.db;Version=3;New=True;Compress=True;";
-        public string ConnectionString
+        public string CurrentText { get; set; }
+
+        private Regex currentLinePattern;
+        public Regex CurrentLinePattern
         {
             get
             {
-                return "Data Source=" + dbSource + ";Version=3;";
+                if (currentLinePattern == null)
+                    currentLinePattern = new Regex(LinePattern.Text, RegexOptions.Singleline);
+
+                return currentLinePattern;
             }
         }
 
-        public string CurrentText { get; set; }
-        public int CurrentTextLineCount
-        {
-            get { return CurrentText.ToCharArray().Count(c => c == '\n') + 1; }
-        }
-
-        public int CurrentWordCount { get; set; }
-        public HashSet<char> CurrentCharSet { get; set; }
-
-        private System.Text.RegularExpressions.Regex currentWordPattern;
-        public System.Text.RegularExpressions.Regex CurrentWordPattern
+        private Regex currentWordPattern;
+        public Regex CurrentWordPattern
         {
             get
             {
                 if (currentWordPattern == null)
-                    currentWordPattern = new System.Text.RegularExpressions.Regex(WordPattern.Text);
+                    currentWordPattern = new Regex(WordPattern.Text);
 
                 return currentWordPattern;
+            }
+        }
+
+        public int CurrentTextLineCount
+        {
+            get { return CurrentText.ToCharArray().Count(c => c == '\n') + 1; }
+        }
+        public int CurrentWordCount { get; set; }
+        public HashSet<char> CurrentCharSet { get; set; }
+
+        internal int currentNgramSize = 2;
+        internal int currentGenerateWordsSize = 10;
+
+        internal enum ViewMode { Text, Lines, Generated }
+        internal ViewMode currentViewMode = ViewMode.Text;
+
+        internal enum GridMode { Words, Ngrams, Generated }
+        internal GridMode currentGridMode = GridMode.Words;
+
+        #region Local Objects
+        protected Text localText;
+        public Text LocalText
+        {
+            get
+            {
+                if (localText == null)
+                    localText = new Text();
+
+                return localText;
+            }
+
+            set
+            {
+                localText = value;
             }
         }
 
@@ -69,18 +97,37 @@ namespace Lx
             }
         }
 
-        public List<Morph> SelectedWords { get; set; }
         public List<Morph> WordList
         {
             get
             {
                 return LocalLexicon.Keys.OrderBy(w => w.Graph).ToList();
+            } 
+        }
+        public List<Morph> SelectedWords { get; set; }
+
+        public Dictionary<string, int> localNgrams;
+        public FiniteStateAutomoton<char> localNgramFSA;
+
+        public Dictionary<string, int> localHMM;
+        public FiniteStateAutomoton<string> localHMMFSA;
+
+        #endregion
+
+        public Text CreatedText { get; set; }
+
+        public Lexicon CreatedLexicon { get; set; }
+        public List<Morph> CreatedWordList
+        {
+            get
+            {
+                if (CreatedLexicon == null)
+                    CreatedLexicon = new Lexicon();
+
+                return CreatedLexicon.Keys.ToList();
             }
         }
 
-        public List<Morph> CreatedWords { get; set; }
-        public Dictionary<string, int> Ngrams;
-        public FiniteStateAutomoton NgramFSA;
 
         public class NgramView
         {
@@ -91,6 +138,9 @@ namespace Lx
 
             public static List<NgramView> GetViewList(Dictionary<string, int> ngrams)
             {
+                if (ngrams == null)
+                    return null;
+
                 var outList = new List<NgramView>();
 
                 foreach (var ngram in ngrams.Keys)
@@ -98,7 +148,7 @@ namespace Lx
                     outList.Add(
                         new NgramView()
                         {
-                            Onset = ngram.Substring(0,1),
+                            Onset = ngram.Substring(0, 1),
                             Coda = ngram.Substring(ngram.Length - 1),
                             Value = ngram,
                             Weight = ngrams[ngram]
@@ -112,44 +162,37 @@ namespace Lx
 
         public List<NgramView> NgramViewList;
 
+
         public MainWindow()
         {
             InitializeComponent();
             PathBox.Text = @"C:\Users\arcan\Documents\Linguistics\Jules Verne_Le Chateau des Carpathes.txt";
+
+            SizeNgram.Text = currentNgramSize.ToString();
+            SizeGenerateWords.Text = currentGenerateWordsSize.ToString();
         }
 
-        private void Load_Click(object sender, RoutedEventArgs e)
+        private void LoadText_Click(object sender, RoutedEventArgs e)
         {
             string path = PathBox.Text;
+            string loadedText = string.Empty;
 
             if (File.Exists(path))
             {
-                TextBlock.Text = File.ReadAllText(path, Encoding.UTF8);
+                loadedText = File.ReadAllText(path, Encoding.UTF8);
             }
+
+            UpdateTextView(loadedText, ViewMode.Text);
         }
 
-        private void CurrentTextUpdated(object sender, TextChangedEventArgs e)
+        #region SQLite
+        public string dbSource = "language.db";//"Data Source=database.db;Version=3;New=True;Compress=True;";
+        public string ConnectionString
         {
-            CurrentText = TextBlock.Text;
-
-            var textChars = TextBlock.Text.ToCharArray();
-            CharCount.Text = textChars.Length.ToString();
-            CurrentCharSet = new HashSet<char>(textChars.Distinct());
-            UniqueCharCount.Text = CurrentCharSet.Count().ToString();
-
-            UpdateWordCount();
-        }
-
-        private void UpdateCurrentWordPattern(object sender, TextChangedEventArgs e)
-        {
-            currentWordPattern = new System.Text.RegularExpressions.Regex(WordPattern.Text);
-            UpdateWordCount();
-        }
-
-        private void UpdateWordCount()
-        {
-            CurrentWordCount = String.IsNullOrEmpty(CurrentText) ? 0 : CurrentWordPattern.Matches(CurrentText).Count;
-            WordCount.Text = CurrentWordCount.ToString();
+            get
+            {
+                return "Data Source=" + dbSource + ";Version=3;";
+            }
         }
 
         private SQLiteConnection CreateConnection()
@@ -180,20 +223,117 @@ namespace Lx
             command.ExecuteNonQuery();
         }
 
-        private void GetWords_Click(object sender, RoutedEventArgs e)
+        private void SaveWords_Click(object sender, RoutedEventArgs e)
         {
-            LocalLexicon.Clear();
+            //Add LocalLexicon to the CurrentLanguage.Lexicon
+        }
 
-            foreach (System.Text.RegularExpressions.Match m in CurrentWordPattern.Matches(TextBlock.Text))
+        #endregion
+
+        #region Update_Events
+
+        private void CurrentText_Updated(object sender, TextChangedEventArgs e)
+        {
+            if (currentViewMode == ViewMode.Text)
             {
-                LocalLexicon.Add(m.Value);
-            }
+                CurrentText = TextBlock.Text;
 
-            UpdateWordGrid();
+                var textChars = TextBlock.Text.ToCharArray();
+                CharCount.Text = textChars.Length.ToString();
+                CurrentCharSet = new HashSet<char>(textChars.Distinct());
+                UniqueCharCount.Text = CurrentCharSet.Count().ToString();
+
+                UpdateWordCount();
+            }
+        }
+
+        private void CurrentWordPattern_Updated(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                currentWordPattern = new Regex(WordPattern.Text);
+                UpdateWordCount();
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        private void CurrentLinePattern_Updated(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                currentLinePattern = new Regex(LinePattern.Text, RegexOptions.Singleline);
+                UpdateWordCount();
+            }
+            catch(Exception ex)
+            {
+            }
+        }
+
+        private void CurrentPuncuationPattern_Updated(object sender, TextChangedEventArgs e)
+        {
+        }
+
+        private void NgramSize_Updated(object sender, TextChangedEventArgs e)
+        {
+            int n = currentNgramSize;
+
+            if (!int.TryParse(SizeNgram.Text, out n))
+            {
+                // Return an error message about validation
+                SizeNgram.Text = currentNgramSize.ToString();
+            }
+            else
+            {
+                if (currentNgramSize != n)
+                    currentNgramSize = n;
+            }
+        }
+
+        private void GenerateWordsSize_Updated(object sender, TextChangedEventArgs e)
+        {
+            int n = currentGenerateWordsSize;
+
+            if (!int.TryParse(SizeGenerateWords.Text, out n))
+            {
+                // Return an error message about validation
+                SizeGenerateWords.Text = currentGenerateWordsSize.ToString();
+            }
+            else
+            {
+                if (currentGenerateWordsSize != n)
+                    currentGenerateWordsSize = n;
+            }
+        }
+
+        #endregion
+
+        #region Update
+
+        private void UpdateTextView(string text, ViewMode mode)
+        {
+            currentViewMode = mode;
+            TextBlock.Text = text;
+        }
+
+        private void UpdateWordCount()
+        {
+            CurrentWordCount = String.IsNullOrEmpty(CurrentText) ? 0 : CurrentWordPattern.Matches(CurrentText).Count;
+            WordCount.Text = CurrentWordCount.ToString();
+        }
+
+        private void UpdateLocalLexicon()
+        {
+            foreach (var m in LocalText.Lexicon.Keys)
+            {
+                LocalLexicon.Add(m.Graph.ToLower(), LocalText.Lexicon[m]);
+            }
         }
 
         private void UpdateWordGrid()
         {
+            currentGridMode = GridMode.Words;
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
 
@@ -228,7 +368,8 @@ namespace Lx
 
         private void UpdateNgramGrid(Dictionary<string, int> source, List<NgramView> target)
         {
-            target = new List<NgramView>(NgramView.GetViewList(source));
+            currentGridMode = GridMode.Ngrams;
+            target = NgramView.GetViewList(source);
 
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
@@ -269,8 +410,9 @@ namespace Lx
             WordGrid.ItemsSource = target;
         }
 
-        private void UpdateCreatedWordGrid()
+        private void UpdateGeneratedWordGrid()
         {
+            currentGridMode = GridMode.Generated;
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
 
@@ -282,20 +424,22 @@ namespace Lx
             };
 
             WordGrid.Columns.Add(wordColumn);
-            WordGrid.ItemsSource = CreatedWords;
+            WordGrid.ItemsSource = CreatedWordList;
         }
+
+        #endregion
 
         private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //if (SelectedWords == null)
-            //    SelectedWords = new List<Morph>();
-            //else
-            //    SelectedWords.Clear();
+            if (SelectedWords == null)
+                SelectedWords = new List<Morph>();
+            else
+                SelectedWords.Clear();
 
-            //foreach(Morph w in e.AddedItems)
-            //{
-            //    SelectedWords.Add(w);
-            //}            
+            foreach (Morph w in e.AddedItems)
+            {
+                SelectedWords.Add(w);
+            }
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
@@ -307,11 +451,6 @@ namespace Lx
             UpdateWordGrid();
         }
 
-        private void SaveWords_Click(object sender, RoutedEventArgs e)
-        {
-            //Add LocalLexicon to the CurrentLanguage.Lexicon
-        }
-
         protected void MyTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             // When the RichTextBox loses focus the user can no longer see the selection.
@@ -319,61 +458,197 @@ namespace Lx
             e.Handled = true;
         }
 
-        private void Words_Click(object sender, RoutedEventArgs e)
+        #region Show
+
+        private void ShowLines_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateTextView(LocalText.ToString(), ViewMode.Lines);
+        }
+
+        private void ShowText_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateTextView(CurrentText, ViewMode.Text);
+        }
+
+        private void ShowGeneratedLines_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateTextView("Nothing to see here yet.", ViewMode.Generated);
+        }
+
+        private void ShowWords_Click(object sender, RoutedEventArgs e)
         {
             UpdateWordGrid();
         }
 
-        private void Ngrams_Click(object sender, RoutedEventArgs e)
+        private void ShowNgrams_Click(object sender, RoutedEventArgs e)
         {
-            if (CreatedWords == null)
-                CreatedWords = new List<Morph>();
-            else
-                CreatedWords.Clear();
+            UpdateNgramGrid(localNgrams, NgramViewList);
+        }
 
-            if (Ngrams == null)
-                Ngrams = new Dictionary<string, int>();
-            else
-                Ngrams.Clear();
-            
-            NgramFSA = new FiniteStateAutomoton();
+        private void ShowCreatedWords_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateGeneratedWordGrid();
+        }
 
-            if (!int.TryParse(TextNgram.Text, out int n))
+        #endregion
+
+        #region Parse
+
+        private void ParseText_Click(object sender, RoutedEventArgs e)
+        {
+            ParseCurrentText();
+            UpdateWordGrid();
+            //UpdateTextView(LocalText.ToString(), ViewMode.Lines);
+        }
+
+        private void ParseNgrams_Click(object sender, RoutedEventArgs e)
+        {
+            ParseLexiconNgramFSA(LocalLexicon);
+            UpdateNgramGrid(localNgrams, NgramViewList);
+        }
+
+        private void ParseCurrentText()
+        {
+            LocalLexicon.Clear();
+            var expElementPattern = new Regex($"({PunctuationPattern.Text})|({WordPattern.Text})");
+            var whiteSpacePattern = new Regex(@"[\s\n\r]+", RegexOptions.Singleline | RegexOptions.Multiline);
+
+            // TODO: handling of paragraph breaks and section headers, etc
+
+            foreach (Match l in CurrentLinePattern.Matches(TextBlock.Text))
             {
-                // Return an error message about validation
-                n = 1;
+                //store line, section up into words and punctuation
+                string cleanedLine = l.Value.Trim();
+                cleanedLine = whiteSpacePattern.Replace(cleanedLine, " ");
+
+                var thisExpression = new Expression(cleanedLine);
+
+                //([\p{P})+|([\w-[_]])+
+
+                foreach (Match m in expElementPattern.Matches(thisExpression.Graph))
+                {
+                    if (m.Groups.Count > 0)
+                    {
+                        if (string.IsNullOrEmpty(m.Groups[1].Value))
+                        {
+                            thisExpression.Add(LocalText.Lexicon.Add(m.Groups[2].Value));
+                        }
+                        else
+                        {
+                            thisExpression.Add(LocalText.Morphosyntax.Add(m.Groups[1].Value));
+                        }
+                    }
+
+                }
+
+                LocalText.Add(thisExpression);
             }
 
-            foreach (var lex in LocalLexicon.Keys)
+            UpdateLocalLexicon();
+        }
+
+        private void ParseLexiconNgramFSA(Lexicon lexicon)
+        {
+            // TODO: give some sort of admonishment if lexicon is empty
+
+            if (localNgrams == null)
+                localNgrams = new Dictionary<string, int>();
+            else
+                localNgrams.Clear();
+
+            localNgramFSA = new FiniteStateAutomoton<char>();
+
+            foreach (var lex in lexicon.Keys)
             {
-                foreach (var ngram in Ngram.Parse(lex.Graph, n))
+                foreach (var ngram in Ngram.Parse(lex.Graph, currentNgramSize))
                 {
-                    if (Ngrams.ContainsKey(ngram))
+                    if (localNgrams.ContainsKey(ngram))
                     {
-                        Ngrams[ngram] += 1;
+                        localNgrams[ngram] += 1;
                     }
                     else
                     {
-                        Ngrams.Add(ngram, 1);
+                        localNgrams.Add(ngram, 1);
                     }
                 }
 
-                NgramFSA.Parse(lex.Graph, n);
+                localNgramFSA.Parse(lex.Graph.ToCharArray(), currentNgramSize);
             }
-
-            UpdateNgramGrid(Ngrams, NgramViewList);
         }
 
-        private void CreateWords_Click(object sender, RoutedEventArgs e)
+        private void ParseTextHMM(Text text)
         {
-            var random = new Random();            
+            if (localHMM == null)
+                localHMM = new Dictionary<string, int>();
+            else
+                localHMM.Clear();
 
-            for (int w = 0; w <= 20; w++)
+            localHMMFSA = new FiniteStateAutomoton<string>();
+
+            foreach (var exp in text)
             {
-                CreatedWords.Add(new Morph(NgramFSA.CreateRandom(random)));
+                var morphArray = exp.Select(m => m.Graph).ToArray();
+
+                localHMMFSA.Parse(morphArray, currentNgramSize);
+            }            
+        }
+
+        #endregion
+
+        #region Generate
+
+        private void GenerateWords(int number)
+        {
+            if (CreatedLexicon == null)
+                CreatedLexicon = new Lexicon();
+
+            // TODO: decide whether to generate Ngram FSA if it's null...
+
+            if (localNgramFSA == null)
+            {
+                ParseLexiconNgramFSA(LocalLexicon);
             }
 
-            UpdateCreatedWordGrid();
+            var random = new Random();
+
+            for (int w = 0; w < number; w++)
+            {
+                var word = localNgramFSA.GenerateRandomChain(random);
+
+                CreatedLexicon.Add(new string(word.ToArray()));
+            }
+        }
+
+
+        private void GenerateWords_Click(object sender, RoutedEventArgs e)
+        {
+            GenerateWords(currentGenerateWordsSize);
+            UpdateGeneratedWordGrid();
+        }
+
+        private void GenerateLines_Click(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+
+            
+        }
+
+        private void ClearGeneratedWords_Click(object sender, RoutedEventArgs e)
+        {
+            if (CreatedLexicon == null)
+                CreatedLexicon = new Lexicon();
+            else
+                CreatedLexicon.Clear();
+
+            UpdateGeneratedWordGrid();
+        }
+
+
+        #endregion
+
+        private void ParseLines_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
