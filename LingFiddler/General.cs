@@ -120,17 +120,18 @@ namespace Lx
 
     public class FiniteStateAutomoton<T>
     {
+        public int Size { get; set; }
+
         public Node<T> Start { get; private set; }
         public Node<T> End { get; private set; }
         public HashSet<Node<T>> States { get; private set; }
-        //public Dictionary<T[], Node<T>> States { get; private set; }
 
-        public FiniteStateAutomoton()
+        public FiniteStateAutomoton(int size = 2)
         {
+            Size = size;
             Start = Node<T>.Start;
             End = Node<T>.End;
             States = new HashSet<Node<T>>();
-            //States = new Dictionary<T[], Node<T>>();
         }
 
         public void AddTransition(T[] from, T[] to)
@@ -142,10 +143,6 @@ namespace Lx
             {
                 startNode = Start;
             }
-            //else if (States.ContainsKey(from))
-            //{
-            //    startNode = States[from];
-            //}
             else
             {
                 startNode = States.FirstOrDefault(n => n.Value.SequenceEqual(from));
@@ -156,17 +153,12 @@ namespace Lx
                 }
 
                 States.Add(startNode);
-                //States.Add(from, startNode);
             }
 
             if (to == null)
             {
                 endNode = End;
             }
-            //else if (States.ContainsKey(to))
-            //{
-            //    endNode = States[to];
-            //}
             else
             {
                 endNode = States.FirstOrDefault(n => n.Value.SequenceEqual(to));
@@ -175,27 +167,26 @@ namespace Lx
                     endNode = new Node<T>(to);
 
                 States.Add(endNode);
-                //States.Add(to, endNode);
             }
 
             startNode.AddTransition(endNode);
         }
 
-        public void Parse(T[] input, int n)
+        public void Parse(T[] input)
         {
             var ngrams = new Queue<T[]>();
 
             if (input != null && input as IEnumerable != null)
             {
-                if (n > input.Length)
+                if (Size > input.Length)
                 {
                     ngrams.Enqueue(input);
                 }
                 else
                 {
-                    for (int i = 0; i + n <= input.Length; i++)
+                    for (int i = 0; i + Size <= input.Length; i++)
                     {
-                        ngrams.Enqueue(input.Slice(i, n));
+                        ngrams.Enqueue(input.Slice(i, Size));
                     }
                 }
             }
@@ -225,17 +216,24 @@ namespace Lx
 
             Node<T> currentNode = Start.GetNext(random);
 
-            while (currentNode == End)
+            while (currentNode.Type == NodeType.End)
             {
-                currentNode = Start.GetNext(random);
+                if (Start.Transitions.Count == 0)
+                {
+                    return new List<T>();
+                }
+                else
+                {
+                    // TODO: prevent Start from having transitions directly to End, cause that's maybe pointless?
+                    currentNode = Start.GetNext(random);
+                }
             }
 
-            while (currentNode != End)
+            while (currentNode.Type != NodeType.End)
             {
                 ngramQueue.Enqueue(currentNode.Value);
                 currentNode = currentNode.GetNext(random);                 
             }
-
 
             var output = new List<T>(ngramQueue.Dequeue());
 
@@ -248,9 +246,10 @@ namespace Lx
         }
     }
 
+    public enum NodeType { Start, End, Value }
+
     public class Node<T>
     {
-        public enum NodeType { Start, End, Value}
         internal readonly NodeType type;
         public NodeType Type
         {
@@ -269,7 +268,7 @@ namespace Lx
 
         internal Node(NodeType type)
         {
-            type = NodeType.Value;
+            this.type = type;
             Transitions = new Dictionary<Node<T>, int>();
         }
 
@@ -317,7 +316,61 @@ namespace Lx
                 }
             }
 
-            return null;
+            return End;
+        }
+
+        public static bool operator== (Node<T> left, Node<T> right)
+        {
+            if (left is null)
+                return right is null;
+            else
+                return left.Equals(right);
+        }
+
+        public static bool operator!=(Node<T> left, Node<T> right)
+        {
+            return !left.Equals(right); 
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Node<T> other))
+                return false;
+            else
+                return Equals(other);
+        }
+
+        public bool Equals(Node<T> other)
+        {
+            if (other is null)
+                return false;
+
+            if (
+                (Type == NodeType.Start && other.Type == NodeType.Start)
+                || (Type == NodeType.End && other.Type == NodeType.End)
+                )
+                return true;
+
+            if (Value != null && other.Value != null && Value.Length == other.Value.Length)
+            {
+                return Value.SequenceEqual(other.Value);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return GetHashCode(this);
+        }
+
+        public int GetHashCode(Node<T> node)
+        {
+            var hashCode = 1873668506;
+            hashCode = hashCode * -1521134295 + node.Type.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<T[]>.Default.GetHashCode(node.Value);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Dictionary<Node<T>, int>>.Default.GetHashCode(node.Transitions);
+            return hashCode;
         }
     }
 
@@ -462,6 +515,14 @@ namespace Lx
 
     public class Lexicon : Dictionary<Morph, int>
     {
+        public int UniqueWordCount
+        {
+            get
+            {
+                return Keys.Count;
+            }
+        }
+
         public Morph Add(string word, int weight = 1)
         {
             if (String.IsNullOrEmpty(word))
@@ -571,7 +632,15 @@ namespace Lx
 
         public override string ToString()
         {
-            return string.Join("\n", this);
+            var text = new StringBuilder();
+
+            foreach (var exp in this)
+            {
+                text.Append(exp.Graph);
+                text.AppendLine();
+            }
+
+            return text.ToString();
         }
     }
 
