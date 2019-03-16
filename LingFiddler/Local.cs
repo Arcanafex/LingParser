@@ -113,14 +113,32 @@ namespace LingFiddler
 
         public void ConstructWordModel(Lx.Lexicon lexicon, int ngramLength)
         {
+            MainWindow.Instance.ParseNgrams.IsEnabled = false;
+            MainWindow.Instance.BackgroundProgress.Maximum = lexicon.Count;
+
+            WordModel = new Lx.FiniteStateAutomoton<char>(ngramLength);
+
+            var worker = new BackgroundWorker();
+            worker.DoWork += WordModel_DoWork;
+            worker.ProgressChanged += MainWindow.Instance.UpdateProgressBar;
+            worker.RunWorkerCompleted += WordModel_WorkCompleted;
+            worker.WorkerReportsProgress = true;
+
+            worker.RunWorkerAsync(lexicon);
+        }
+
+        private void WordModel_DoWork(object sender, DoWorkEventArgs e)
+        {
+            var worker = sender as BackgroundWorker;
+            var lexicon = e.Argument as Lx.Lexicon;
+            int progress = 0;
+
             // TODO: give some sort of admonishment if lexicon is empty
 
             //if (localNgrams == null)
             //    localNgrams = new Dictionary<string, int>();
             //else
             //    localNgrams.Clear();
-
-            WordModel = new Lx.FiniteStateAutomoton<char>(ngramLength);
 
             foreach (var lex in lexicon.Keys)
             {
@@ -137,7 +155,29 @@ namespace LingFiddler
                 //}
 
                 WordModel.Parse(lex.Graph.ToCharArray());
+
+                string state = lex.Graph;
+                worker.ReportProgress(++progress, state);
             }
+        }
+
+        private void WordModel_WorkCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if (!e.Cancelled && e.Error == null)
+            {
+                MainWindow.Instance.BackgroundProgress.Value = 0;
+                MainWindow.Instance.BackgroundStatus.Text = string.Empty;
+            }
+            else if (e.Cancelled)
+            {
+                // action cancelled
+            }
+            else
+            {
+                // an error occurred
+            }
+
+            MainWindow.Instance.ParseNgrams.IsEnabled = true;
         }
 
         internal void ConstructTextModel(int chainLength)
@@ -170,16 +210,15 @@ namespace LingFiddler
             var arguments = e.Argument as object[];
             var model = arguments[0] as Lx.FiniteStateAutomoton<string>;
             var text = arguments[1] as Lx.Text;
+            int progress = 0;
 
-            for (int i = 0; i < text.Count; i++)
+            foreach(var exp in text)
             {
-                var morphArray = text[i].Select(m => m.Graph).ToArray();
+                var morphArray = exp.Select(m => m.Graph).ToArray();
                 TextModel.Parse(morphArray);
             
-                int progress = i;
-                string state = text[i].Graph;
-
-                worker.ReportProgress(i, state);
+                string state = exp.Graph;
+                worker.ReportProgress(++progress, state);
             }
         }
 
