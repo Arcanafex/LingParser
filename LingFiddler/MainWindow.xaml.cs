@@ -16,7 +16,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 using System.ComponentModel;
-//using Lx;
 
 namespace LingFiddler
 {
@@ -83,7 +82,7 @@ namespace LingFiddler
         internal enum GridMode { Words, Ngrams, Generated }
         internal GridMode currentGridMode = GridMode.Words;
 
-        public List<Lx.Morph> ViewListWord
+        public List<Lx.Morpheme> ViewListWord
         {
             get
             {
@@ -91,7 +90,7 @@ namespace LingFiddler
             }
         }
 
-        public List<Lx.Morph> ViewListGeneratedWord
+        public List<Lx.Morpheme> ViewListGeneratedWord
         {
             get
             {
@@ -99,7 +98,7 @@ namespace LingFiddler
             }
         }
 
-        public List<Lx.Morph> SelectedWords { get; set; }
+        public List<Lx.Morpheme> SelectedWords { get; set; }
 
         public class NgramView
         {
@@ -169,6 +168,10 @@ namespace LingFiddler
             PatternWord.Text = patternWord;
             PatternPunctuation.Text = patternPunctuation;
 
+            ParseNgrams.IsEnabled = false;
+            GenerateWords.IsEnabled = false;
+            ParseTextModel.IsEnabled = false;
+            GenerateLines.IsEnabled = false;
         }
 
         private void LoadText_Click(object sender, RoutedEventArgs e)
@@ -386,7 +389,7 @@ namespace LingFiddler
 
         #region Update Word Grid
 
-        private void UpdateWordGrid()
+        internal void UpdateWordGrid()
         {
             currentGridMode = GridMode.Words;
             WordGrid.ItemsSource = null;
@@ -421,7 +424,7 @@ namespace LingFiddler
             WordGrid.ItemsSource = ViewListWord;
         }
 
-        private void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source, List<NgramView> target)
+        internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source, List<NgramView> target)
         {
             currentGridMode = GridMode.Ngrams;
             target = NgramView.GetViewList(source);
@@ -465,7 +468,7 @@ namespace LingFiddler
             WordGrid.ItemsSource = target;
         }
 
-        private void UpdateGeneratedWordGrid()
+        internal void UpdateGeneratedWordGrid()
         {
             currentGridMode = GridMode.Generated;
             WordGrid.ItemsSource = null;
@@ -485,11 +488,11 @@ namespace LingFiddler
         private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SelectedWords == null)
-                SelectedWords = new List<Lx.Morph>();
+                SelectedWords = new List<Lx.Morpheme>();
             else
                 SelectedWords.Clear();
 
-            foreach (Lx.Morph w in e.AddedItems)
+            foreach (Lx.Morpheme w in e.AddedItems)
             {
                 SelectedWords.Add(w);
             }
@@ -498,7 +501,7 @@ namespace LingFiddler
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             if (SelectedWords == null)
-                SelectedWords = new List<Lx.Morph>();
+                SelectedWords = new List<Lx.Morpheme>();
 
             SelectedWords.ForEach(w => CurrentLanguage.Lexicon.Remove(w));
             UpdateWordGrid();
@@ -506,7 +509,7 @@ namespace LingFiddler
 
         #endregion
 
-        protected void MyTextBox_LostFocus(object sender, RoutedEventArgs e)
+        private void MyTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             // When the RichTextBox loses focus the user can no longer see the selection.
             // This is a hack to make the RichTextBox think it did not lose focus.
@@ -551,8 +554,7 @@ namespace LingFiddler
 
         private void ParseText_Click(object sender, RoutedEventArgs e)
         {
-            CurrentLanguage.ParseText(CurrentText);
-            UpdateWordGrid();
+            CurrentLanguage.ParseText(CurrentText);            
         }
 
         private void ParseNgrams_Click(object sender, RoutedEventArgs e)

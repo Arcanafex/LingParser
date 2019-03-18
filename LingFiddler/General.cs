@@ -85,7 +85,7 @@ namespace Lx
     /// <summary>
     /// Class representing the surface word form.
     /// </summary>
-    public class Morph
+    public class Morpheme
     {
         public string Graph { get; set; }
         public int Length { get { return Graph.Length; } }
@@ -96,14 +96,14 @@ namespace Lx
         public Concept Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
 
-        public Morph(string graph)
+        public Morpheme(string graph)
         {
             this.Graph = graph;
         }            
 
         public override bool Equals(object obj)
         {
-            var other = obj as Morph;
+            var other = obj as Morpheme;
             return this.Graph.Equals(other.Graph);
         }
 
@@ -120,15 +120,15 @@ namespace Lx
 
     public class FiniteStateAutomoton<T>
     {
-        public int Size { get; set; }
+        //public int Size { get; set; }
 
         public Node<T> Start { get; private set; }
         public Node<T> End { get; private set; }
         public HashSet<Node<T>> States { get; private set; }
 
-        public FiniteStateAutomoton(int size = 2)
+        public FiniteStateAutomoton()//int size = 2)
         {
-            Size = size;
+            //Size = size;
             Start = Node<T>.Start;
             End = Node<T>.End;
             States = new HashSet<Node<T>>();
@@ -172,21 +172,21 @@ namespace Lx
             startNode.AddTransition(endNode);
         }
 
-        public void Parse(T[] input)
+        public void Parse(T[] input, int size)
         {
             var ngrams = new Queue<T[]>();
 
             if (input != null && input as IEnumerable != null)
             {
-                if (Size > input.Length)
+                if (size > input.Length)
                 {
                     ngrams.Enqueue(input);
                 }
                 else
                 {
-                    for (int i = 0; i + Size <= input.Length; i++)
+                    for (int i = 0; i + size <= input.Length; i++)
                     {
-                        ngrams.Enqueue(input.Slice(i, Size));
+                        ngrams.Enqueue(input.Slice(i, size));
                     }
                 }
             }
@@ -239,7 +239,14 @@ namespace Lx
 
             while (ngramQueue.Count > 0)
             {
-                output.Add(ngramQueue.Dequeue().Last());
+                var suffix = ngramQueue.Dequeue();
+                var index = suffix.Overlap(output.ToArray());
+                var segments = suffix.Length > index ? suffix.Slice(index) : new T[] { suffix.Last() };
+
+                foreach (var segment in segments)
+                {
+                    output.Add(segment);
+                }
             }
 
             return output;
@@ -513,7 +520,7 @@ namespace Lx
 
     }
 
-    public class Lexicon : Dictionary<Morph, int>
+    public class Lexicon : Dictionary<Morpheme, int>
     {
         public int UniqueWordCount
         {
@@ -523,7 +530,7 @@ namespace Lx
             }
         }
 
-        public Morph Add(string word, int weight = 1)
+        public Morpheme Add(string word, int weight = 1)
         {
             if (String.IsNullOrEmpty(word))
                 return null;
@@ -532,7 +539,7 @@ namespace Lx
 
             if (thisWord == null)
             {
-                thisWord = new Morph(word);
+                thisWord = new Morpheme(word);
 
                 Add(thisWord, weight);
             }
@@ -544,39 +551,56 @@ namespace Lx
             return thisWord;
         }
 
-        public void Merge(Morph target, Morph mergee)
-        {
-            if (target == mergee)
-                return;
+        //public new Morpheme Add(Morpheme morpheme, int weight = 1)
+        //{
+        //    Morpheme thisMorph = Keys.FirstOrDefault(m => m.Equals(morpheme));
 
-            if (this.ContainsKey(target) && this.ContainsKey(mergee))
-            {
-                this[target] += this[mergee];
+        //    if (thisMorph == null)
+        //    {
+        //        thisMorph = morpheme;
+        //        Add(thisMorph, weight);
+        //    }
+        //    else
+        //    {
+        //        this[thisMorph] += weight;
+        //    }
 
-                if (mergee.Expressions != null)
-                {
-                    foreach (var expression in mergee.Expressions)
-                    {
-                        expression.Where(m => m == mergee).Select(m => expression.IndexOf(m)).ToList().ForEach(i => expression[i] = target);
+        //    return thisMorph;
+        //}
 
-                        if (target.Expressions == null)
-                            target.Expressions = new HashSet<Expression>();
+        //public void Merge(Morpheme target, Morpheme mergee)
+        //{
+        //    if (target == mergee)
+        //        return;
 
-                        target.Expressions.Add(expression);
-                    }
-                }
+        //    if (this.ContainsKey(target) && this.ContainsKey(mergee))
+        //    {
+        //        this[target] += this[mergee];
 
-                Remove(mergee);
-            }
-        }
+        //        if (mergee.Expressions != null)
+        //        {
+        //            foreach (var expression in mergee.Expressions)
+        //            {
+        //                expression.Where(m => m == mergee).Select(m => expression.IndexOf(m)).ToList().ForEach(i => expression[i] = target);
 
-        public void Merge(Morph target, IEnumerable<Morph> morphs)
-        {
-            foreach (var morph in morphs)
-            {
-                Merge(target, morph);
-            }
-        }
+        //                if (target.Expressions == null)
+        //                    target.Expressions = new HashSet<Expression>();
+
+        //                target.Expressions.Add(expression);
+        //            }
+        //        }
+
+        //        Remove(mergee);
+        //    }
+        //}
+
+        //public void Merge(Morpheme target, IEnumerable<Morpheme> morphs)
+        //{
+        //    foreach (var morph in morphs)
+        //    {
+        //        Merge(target, morph);
+        //    }
+        //}
 
     }
 
@@ -590,7 +614,7 @@ namespace Lx
 
 
 
-    public class Expression : List<Morph>
+    public class Expression : List<Morpheme>
     {
         public Expression(string rawExpression = "")
         {
@@ -682,12 +706,32 @@ namespace Lx
 
     public static class Extensions
     {
-        public static T[] Slice<T>(this T[] source, int start, int length)
+        public static T[] Slice<T>(this T[] source, int start)
         {
-            if (length < 0)
+            if (start < source.Length)
+            {
+                if (start < 0)
+                    start = 0;
+
+                T[] slice = new T[source.Length - start];
+
+                for (int i = 0; i + start < source.Length; i++)
+                {
+                    slice[i] = source[i + start];
+                }
+
+                return slice;
+            }
+            else
             {
                 return null;
             }
+        }
+
+        public static T[] Slice<T>(this T[] source, int start, int length)
+        {
+            if (length < 0)
+                return null;
 
             T[] slice = new T[length];
 
@@ -697,6 +741,33 @@ namespace Lx
             }
 
             return slice;
+        }
+
+        public static int Overlap<T>(this T[] rightArray, T[] leftArray)
+        {
+            int index = 0;
+
+            if (
+                rightArray != null 
+                && leftArray != null 
+                && rightArray.Length > 0 
+                && leftArray.Length > 0 
+                //&& rightArray.Intersect(leftArray).ToArray().Length > 0
+                )
+            {
+                for (int i = 0; i < rightArray.Length && i < leftArray.Length; i++)
+                {
+                    var rightStub = rightArray.Slice(0, i + 1);
+                    var leftStub = leftArray.Slice(leftArray.Length - 1 - i);
+
+                    if (rightStub.SequenceEqual(leftStub))
+                    {
+                        index = i + 1;
+                    }
+                }
+            }
+
+            return index;
         }
     }
 

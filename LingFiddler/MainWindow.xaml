@@ -28,7 +28,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Center" Margin="5, 0">
-                    <Button x:Name="CreateWords" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Height="25" Click="GenerateWords_Click"/>
+                    <Button x:Name="GenerateWords" Content="Generate" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Height="25" Click="GenerateWords_Click"/>
                     <TextBox x:Name="SizeGenerateWords" Text="10"  Width="60" Margin="5, 2" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NumberGenerateWords_Updated"/>
                 </StackPanel>
                 <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Height="25" Margin="5, 0" VerticalAlignment="Top" Click="ClearGeneratedWords_Click"/>
@@ -95,7 +95,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel>
-                    <Button Content="Generate" Width="80" Height="25" Click="GenerateLines_Click"/>
+                    <Button Name="GenerateLines" Content="Generate" Width="80" Height="25" Click="GenerateLines_Click"/>
                     <TextBox x:Name="SizeGenerateLines" Text="5"  Width="60" Margin="5, 2" Height="25" TextAlignment="Center" VerticalContentAlignment="Center" TextChanged="NumberGenerateLines_Updated"/>
                 </StackPanel>
                 <Button Content="Clear" Width="80" Height="25" Margin="10,0" VerticalAlignment="Top" Click="ClearGeneratedText_Click"/>
