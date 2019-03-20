@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace LingFiddler
 {
@@ -324,7 +320,9 @@ namespace LingFiddler
         {
             foreach (var m in Text.Lexicon.Keys)
             {
-                // this is problematic as it creates new instances
+                // this is problematic as it will re-add existing text lexicon
+                // result is that the lexicon sums will be multiplied.
+
                 Lexicon.Add(m.Graph.ToLower(), Text.Lexicon[m]);
             }
         }
@@ -393,7 +391,6 @@ namespace LingFiddler
             if (GeneratedText is null)
                 GeneratedText = new Lx.Text();
 
-            //var builder = new StringBuilder();
             var random = new Random();
 
             for (int l = 0; l < number; l++)
@@ -406,12 +403,14 @@ namespace LingFiddler
 
         public void ClearGeneratedText()
         {
-            GeneratedText.Clear();
+            if (GeneratedText != null)
+                GeneratedText.Clear();
         }
 
         public void ClearGeneratedLexicon()
         {
-            GeneratedLexicon.Clear();
+            if (GeneratedLexicon != null)
+                GeneratedLexicon.Clear();
         }
 
         #endregion

@@ -16,6 +16,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace LingFiddler
 {
@@ -82,19 +84,138 @@ namespace LingFiddler
         internal enum GridMode { Words, Ngrams, Generated }
         internal GridMode currentGridMode = GridMode.Words;
 
-        public List<Lx.Morpheme> ViewListWord
+        public class MorphemeView : ObservableCollection<MorphemeView.MorphemeViewItem>, IDisposable
         {
-            get
+            public class MorphemeViewItem
             {
-                return CurrentLanguage.Lexicon.Keys.OrderBy(w => w.Graph).ToList();
+                public readonly Lx.Morpheme Morpheme;
+                public readonly Lx.Lexicon Lexicon;
+                public readonly MorphemeView ParentView;
+                public string Graph
+                {
+                    get { return Morpheme.Graph; }
+                    set
+                    {
+                        if (Lexicon != null)
+                        {
+                            var morph = Lexicon.Keys.FirstOrDefault(m => m.Graph == value);
+
+                            if (morph != null)
+                            {
+                                Lexicon[morph] += Lexicon[Morpheme];
+                                Lexicon.Remove(Morpheme);
+                                ParentView.Remove(this);
+                                CollectionViewSource.GetDefaultView(ParentView).Refresh();
+                            }
+                            else
+                            {
+                                int weight = Lexicon[Morpheme];
+                                Lexicon.Remove(Morpheme);
+                                Morpheme.Graph = value;
+                                Lexicon.Add(Morpheme, weight);
+                            }
+                        }
+                        else
+                        {
+                            Morpheme.Graph = value;
+                        }
+                    }
+                }
+                public int Length { get { return Graph.Length; } }
+                public int Frequency
+                {
+                    get
+                    {
+                        return Lexicon != null && Lexicon.ContainsKey(Morpheme) ? Lexicon[Morpheme] : 0;
+                    }
+                    set
+                    {
+                        if (Lexicon != null && Lexicon.ContainsKey(Morpheme))
+                        {
+                            Lexicon[Morpheme] = value;
+                        }                            
+                    }
+                }
+
+                public MorphemeViewItem(Lx.Morpheme morpheme, Lx.Lexicon lexicon, MorphemeView view)
+                {
+                    Morpheme = morpheme;
+                    Lexicon = lexicon;
+                    ParentView = view;
+                }
+            }
+
+            public MorphemeView()
+            {
+                this.CollectionChanged += ItemUpdated;
+            }
+
+            public bool AddNewItem(Lx.Morpheme morpheme, Lx.Lexicon lexicon)
+            {
+                if (this.Any(m => m.Morpheme == morpheme && m.Lexicon == lexicon))
+                {
+                    // this is already in the view collection
+                    return false;
+                }
+                else
+                {
+                    Add(new MorphemeViewItem(morpheme, lexicon, this));
+                    return true;
+                }
+            }
+
+            public static MorphemeView GetMorphemeView(Lx.Lexicon lexicon)
+            {
+                var list = new MorphemeView();
+
+                foreach (var m in lexicon.Keys.OrderBy(m => m.Graph))
+                {
+                    list.AddNewItem(m, lexicon);
+                }
+
+                return list;
+            }
+
+            private void ItemUpdated(object sender, NotifyCollectionChangedEventArgs e)
+            {
+                switch (e.Action)
+                {
+                    case NotifyCollectionChangedAction.Add:
+                        foreach (MorphemeViewItem item in e.NewItems)
+                        {
+                            //int index = e.NewStartingIndex;
+                            //Lx.Lexicon lexicon = this[index].Lexicon;
+
+                            //item.Lexicon
+                        }
+                        break;
+                    case NotifyCollectionChangedAction.Move:
+                        break;
+                    case NotifyCollectionChangedAction.Remove:
+                        foreach (MorphemeViewItem item in e.OldItems)
+                        {
+                            item.Lexicon.Remove(item.Morpheme);
+                        }
+                        break;
+                    case NotifyCollectionChangedAction.Replace:
+                        break;
+                    case NotifyCollectionChangedAction.Reset:
+                        break;
+                }
+            }
+
+            public void Dispose()
+            {
+                this.CollectionChanged -= ItemUpdated;
             }
         }
+
 
         public List<Lx.Morpheme> ViewListGeneratedWord
         {
             get
             {
-                return CurrentLanguage.GeneratedLexicon.Keys.ToList();
+                return CurrentLanguage.GeneratedLexicon != null ? CurrentLanguage.GeneratedLexicon.Keys.ToList() : null;
             }
         }
 
@@ -176,16 +297,13 @@ namespace LingFiddler
 
         private void LoadText_Click(object sender, RoutedEventArgs e)
         {
-            string loadedText = string.Empty;
-
             var openDialog = new Microsoft.Win32.OpenFileDialog();
 
             if (openDialog.ShowDialog() == true)
             {
-                loadedText = File.ReadAllText(openDialog.FileName, Encoding.UTF8);
-            }
-
-            UpdateTextView(loadedText, ViewMode.Text);
+                string loadedText = File.ReadAllText(openDialog.FileName, Encoding.UTF8);
+                UpdateTextView(loadedText, ViewMode.Text);
+            }            
         }
 
         #region SQLite
@@ -421,7 +539,8 @@ namespace LingFiddler
             WordGrid.Columns.Add(lengthColumn);
             WordGrid.Columns.Add(freqColumn);
 
-            WordGrid.ItemsSource = ViewListWord;
+            var morphemeView = MorphemeView.GetMorphemeView(CurrentLanguage.Lexicon);            
+            WordGrid.ItemsSource = morphemeView;
         }
 
         internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source, List<NgramView> target)
@@ -489,12 +608,15 @@ namespace LingFiddler
         {
             if (SelectedWords == null)
                 SelectedWords = new List<Lx.Morpheme>();
-            else
-                SelectedWords.Clear();
 
-            foreach (Lx.Morpheme w in e.AddedItems)
+            foreach (MorphemeView.MorphemeViewItem m in e.RemovedItems)
             {
-                SelectedWords.Add(w);
+                SelectedWords.Remove(m.Morpheme);
+            }
+
+            foreach (MorphemeView.MorphemeViewItem m in e.AddedItems)
+            {
+                SelectedWords.Add(m.Morpheme);
             }
         }
 
@@ -504,6 +626,8 @@ namespace LingFiddler
                 SelectedWords = new List<Lx.Morpheme>();
 
             SelectedWords.ForEach(w => CurrentLanguage.Lexicon.Remove(w));
+            SelectedWords.Clear();
+
             UpdateWordGrid();
         }
 
@@ -597,6 +721,5 @@ namespace LingFiddler
         }
 
         #endregion
-
     }
 }

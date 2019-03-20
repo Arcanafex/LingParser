@@ -101,20 +101,40 @@ namespace Lx
             this.Graph = graph;
         }            
 
+        public static bool operator== (Morpheme left, Morpheme right)
+        {
+            if (left is null)
+                return right is null;
+            else
+                return left.Equals(right);
+        }
+
+        public static bool operator!= (Morpheme left, Morpheme right)
+        {
+            return !(left == right);
+        }
+
+        public bool Equals(Morpheme other)
+        {
+            if (other is null)
+                return false;
+            else
+                return this.Graph == other.Graph;
+        }
+
         public override bool Equals(object obj)
         {
-            var other = obj as Morpheme;
-            return this.Graph.Equals(other.Graph);
+            return Equals(obj as Morpheme);            
         }
 
         public override string ToString()
         {
-            return this.Graph;
+            return Graph;
         }
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return Graph.GetHashCode();
         }
     }
 

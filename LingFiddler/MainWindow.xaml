@@ -14,11 +14,11 @@
                 <Button x:Name="ShowNgrams" Content="Ngrams"  Width="80" Margin="5, 0" Click="ShowNgrams_Click"/>
                 <Button x:Name="ShowCreateWords" Content="Generated" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="ShowCreatedWords_Click"/>
             </StackPanel>
-            <!--<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10">
                 <Button x:Name="Delete" Content="Delete" Width="80" Click="Delete_Click"/>
-                <Button x:Name="SaveWords" Content="Save"  Width="80"  Margin="5, 0" Click="SaveWords_Click"/>
-                <TextBox Text="Language" Width="230" />
-            </StackPanel>-->
+                <!--<Button x:Name="SaveWords" Content="Save"  Width="80"  Margin="5, 0" Click="SaveWords_Click"/>
+                <TextBox Text="Language" Width="230" />-->
+            </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10, 0">
                 <StackPanel>
                     <Button x:Name="ParseNgrams" Content="Ngrams"  Width="80" Height="25" Click="ParseNgrams_Click"/>
@@ -33,7 +33,13 @@
                 </StackPanel>
                 <Button x:Name="ClearGeneratedWords" Content="Clear" Width="80" Height="25" Margin="5, 0" VerticalAlignment="Top" Click="ClearGeneratedWords_Click"/>
             </StackPanel>
-            <DataGrid Name="WordGrid" Width="400" Margin="10" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" />
+            <DockPanel>
+                <ListBox Name="NodeList" Visibility="Collapsed">
+                    <ListBoxItem>Test</ListBoxItem>
+                    <ListBoxItem>Test2</ListBoxItem>
+                </ListBox>
+                <DataGrid Name="WordGrid" Width="400" Margin="10" SelectionChanged="WordGrid_SelectionChanged" SelectionMode="Extended" AutoGenerateColumns="False" />
+            </DockPanel>
         </DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10, 10, 10, 0" Height="25">
             <Button Content="Text" Width="80" Click="ShowText_Click"/>
