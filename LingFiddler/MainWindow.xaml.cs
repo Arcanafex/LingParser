@@ -84,6 +84,28 @@ namespace LingFiddler
         internal enum GridMode { Words, Ngrams, Generated }
         internal GridMode currentGridMode = GridMode.Words;
 
+        internal void ChangeMode(ViewMode mode)
+        {
+            ViewMode lastMode = currentViewMode;
+            currentViewMode = mode;
+        }
+
+        internal void ChangeMode(GridMode mode)
+        {
+            GridMode lastMode = currentGridMode;
+            currentGridMode = mode;
+
+            if (currentGridMode == GridMode.Ngrams)
+            {
+                NodeList.Visibility = Visibility.Visible;
+            }
+            else if (lastMode == GridMode.Ngrams)
+            {
+                NodeList.Visibility = Visibility.Collapsed;
+            }
+
+        }
+
         public class MorphemeView : ObservableCollection<MorphemeView.MorphemeViewItem>, IDisposable
         {
             public class MorphemeViewItem
@@ -210,7 +232,6 @@ namespace LingFiddler
             }
         }
 
-
         public List<Lx.Morpheme> ViewListGeneratedWord
         {
             get
@@ -221,37 +242,141 @@ namespace LingFiddler
 
         public List<Lx.Morpheme> SelectedWords { get; set; }
 
-        public class NgramView
+        public class NgramView : ObservableCollection<NgramView.NgramViewItem>
         {
-            public string Onset { get; set; }
-            public string Coda { get; set; }
-            public string Value { get; set; }
-            public int Weight { get; set; }
+            public readonly Lx.FiniteStateAutomoton<char> StateMachine;
 
-            public static List<NgramView> GetViewList(Lx.FiniteStateAutomoton<char> ngrams)
+            private NgramView (Lx.FiniteStateAutomoton<char> stateMachine)
             {
-                if (ngrams == null)
-                    return null;
+                StateMachine = stateMachine;
 
-                var outList = new List<NgramView>();
+                AddNgramViewItem(StateMachine.Start);
 
-                //foreach (var ngram in ngrams.Keys)
-                //{
-                //    outList.Add(
-                //        new NgramView()
-                //        {
-                //            Onset = ngram.Substring(0, 1),
-                //            Coda = ngram.Substring(ngram.Length - 1),
-                //            Value = ngram,
-                //            Weight = ngrams[ngram]
-                //        }
-                //    );
-                //}
+                foreach (var state in stateMachine.States.OrderBy(s => new string(s.Value)))
+                {
+                    AddNgramViewItem(state);
+                }
+            }
 
-                return outList.OrderBy(n => n.Value).ToList();
+            public static NgramView GetNgramView(Lx.FiniteStateAutomoton<char> stateMachine)
+            {
+                var view = new NgramView(stateMachine);
+                return view;
+            }
+
+            public void AddNgramViewItem(Lx.Node<char> state)
+            {
+                Add(new NgramViewItem(this, state));
+            }
+
+            public class NgramViewItem
+            {
+                //public readonly Lx.FiniteStateAutomoton<char> StateMachine;
+                public readonly Lx.Node<char> State;
+                public readonly NgramView ParentView;
+
+                public List<TransitionViewItem> TransitionView;
+
+                public string Value
+                {
+                    get
+                    {
+                        switch (State.Type)
+                        {
+                            case Lx.NodeType.Start:
+                                return "[START]";
+                            case Lx.NodeType.Value:
+                                return new string(State.Value);
+                            case Lx.NodeType.End:
+                                return "[END]";
+                            default:
+                                return string.Empty;
+                        }
+                    }
+                    //set
+                    //{
+                    //    State.UpdateValue(value.ToCharArray());
+                    //}
+                }
+
+                internal NgramViewItem(NgramView parentView, Lx.Node<char> state)
+                {
+                    ParentView = parentView;
+                    State = state;
+
+                    TransitionView = new List<TransitionViewItem>();
+
+                    foreach(var transition in State.Transitions.OrderBy(t => new string(t.Key.Value)))
+                    {
+                        AddTransitionViewItem(transition.Key, transition.Value);
+                    }
+                }
+
+                internal void AddTransitionViewItem(Lx.Node<char> state, int weight)
+                {
+                    TransitionView.Add(new TransitionViewItem(this, state, weight));
+                }
+            }
+
+            public class TransitionViewItem
+            {
+                public readonly NgramViewItem OriginState;
+                public readonly Lx.Node<char> State;
+
+                private readonly int codaIndex;
+                private string coda;
+                public string Coda
+                {
+                    get
+                    {
+                        return coda;
+                    }
+                    set
+                    {
+                        coda = value;
+
+                        string updatedValue = new string(State.Value).Substring(0, codaIndex) + coda;
+                        State.UpdateValue(updatedValue.ToCharArray());
+                    }
+                }
+
+                public int Weight
+                {
+                    get
+                    {
+                        return OriginState.State.Transitions[State];
+                    }
+                    set
+                    {
+                        OriginState.State.Transitions[State] = value;
+                    }
+                }
+
+                internal TransitionViewItem(NgramViewItem originState, Lx.Node<char> endState, int weight)
+                {
+                    OriginState = originState;
+                    State = endState;
+
+                    switch (endState.Type)
+                    {
+                        case Lx.NodeType.Start:
+                            codaIndex = 0;
+                            coda = "[START]";
+                            break;
+
+                        case Lx.NodeType.Value:
+                            codaIndex = State.Value.Overlap(originState.State.Value);
+                            Coda = new string(State.Value.Slice(codaIndex));
+                            break;
+
+                        case Lx.NodeType.End:
+                            codaIndex = 0;
+                            coda = "[END]";
+                            break;
+                    }
+                }
             }
         }
-        public List<NgramView> ViewListNgram;
 
         #endregion
 
@@ -509,7 +634,8 @@ namespace LingFiddler
 
         internal void UpdateWordGrid()
         {
-            currentGridMode = GridMode.Words;
+            ChangeMode(GridMode.Words);
+            //currentGridMode = GridMode.Words;
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
 
@@ -543,33 +669,21 @@ namespace LingFiddler
             WordGrid.ItemsSource = morphemeView;
         }
 
-        internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source, List<NgramView> target)
+        internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source)
         {
-            currentGridMode = GridMode.Ngrams;
-            target = NgramView.GetViewList(source);
+            ChangeMode(GridMode.Ngrams);
+
+            NodeList.ItemsSource = null;
+            //NodeList.Items.Clear();
 
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
-
-            DataGridTextColumn onsetColumn = new DataGridTextColumn()
-            {
-                Header = "Onset",
-                Binding = new Binding("Onset"),
-                Width = 50
-            };
 
             DataGridTextColumn codaColumn = new DataGridTextColumn()
             {
                 Header = "Coda",
                 Binding = new Binding("Coda"),
-                Width = 50
-            };
-
-            DataGridTextColumn valueColumn = new DataGridTextColumn()
-            {
-                Header = "Value",
-                Binding = new Binding("Value"),
-                Width = 50
+                Width = 80                
             };
 
             DataGridTextColumn weightColumn = new DataGridTextColumn()
@@ -579,17 +693,20 @@ namespace LingFiddler
                 Width = 50
             };
 
-            WordGrid.Columns.Add(onsetColumn);
             WordGrid.Columns.Add(codaColumn);
-            WordGrid.Columns.Add(valueColumn);
             WordGrid.Columns.Add(weightColumn);
 
-            WordGrid.ItemsSource = target;
+            var view = NgramView.GetNgramView(CurrentLanguage.WordModel);
+            NodeList.ItemsSource = view;
+
+            if (view.Count > 0)
+                NodeList.SelectedIndex = 0;
         }
 
         internal void UpdateGeneratedWordGrid()
         {
-            currentGridMode = GridMode.Generated;
+            ChangeMode(GridMode.Generated);
+            //currentGridMode = GridMode.Generated;
             WordGrid.ItemsSource = null;
             WordGrid.Columns.Clear();
 
@@ -620,16 +737,16 @@ namespace LingFiddler
             }
         }
 
-        private void Delete_Click(object sender, RoutedEventArgs e)
-        {
-            if (SelectedWords == null)
-                SelectedWords = new List<Lx.Morpheme>();
+        //private void Delete_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (SelectedWords == null)
+        //        SelectedWords = new List<Lx.Morpheme>();
 
-            SelectedWords.ForEach(w => CurrentLanguage.Lexicon.Remove(w));
-            SelectedWords.Clear();
+        //    SelectedWords.ForEach(w => CurrentLanguage.Lexicon.Remove(w));
+        //    SelectedWords.Clear();
 
-            UpdateWordGrid();
-        }
+        //    UpdateWordGrid();
+        //}
 
         #endregion
 
@@ -664,7 +781,7 @@ namespace LingFiddler
 
         private void ShowNgrams_Click(object sender, RoutedEventArgs e)
         {
-            UpdateNgramGrid(CurrentLanguage.WordModel, ViewListNgram);
+            UpdateNgramGrid(CurrentLanguage.WordModel);//, ViewListNgram);
         }
 
         private void ShowCreatedWords_Click(object sender, RoutedEventArgs e)
@@ -684,7 +801,7 @@ namespace LingFiddler
         private void ParseNgrams_Click(object sender, RoutedEventArgs e)
         {
             CurrentLanguage.ConstructWordModel(sizeNgram);
-            //UpdateNgramGrid(CurrentLanguage.WordModel, ViewListNgram);
+            //UpdateNgramGrid(CurrentLanguage.WordModel);
         }
 
         private void ParseLines_Click(object sender, RoutedEventArgs e)
@@ -721,5 +838,13 @@ namespace LingFiddler
         }
 
         #endregion
+
+        private void SelectedNgram_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            foreach (NgramView.NgramViewItem selectedItem in e.AddedItems)
+            {
+                WordGrid.ItemsSource = selectedItem.TransitionView;
+            }
+        }
     }
 }

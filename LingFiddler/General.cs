@@ -315,6 +315,10 @@ namespace Lx
             }
         }
 
+        public void UpdateValue(T[] value)
+        {
+            Value = value;
+        }
 
         public void AddTransition(Node<T> to, int weight = 1)
         {
@@ -384,20 +388,6 @@ namespace Lx
             }
 
             return false;
-        }
-
-        public override int GetHashCode()
-        {
-            return GetHashCode(this);
-        }
-
-        public int GetHashCode(Node<T> node)
-        {
-            var hashCode = 1873668506;
-            hashCode = hashCode * -1521134295 + node.Type.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<T[]>.Default.GetHashCode(node.Value);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Dictionary<Node<T>, int>>.Default.GetHashCode(node.Transitions);
-            return hashCode;
         }
     }
 
@@ -724,71 +714,75 @@ namespace Lx
 
     //Discource set as a way of specifying features for a sequence of Expressions.
 
-    public static class Extensions
+
+}
+
+public static class Extensions
+{
+    public static T[] Slice<T>(this T[] source, int start)
     {
-        public static T[] Slice<T>(this T[] source, int start)
+
+
+        if (source != null && start < source.Length)
         {
-            if (start < source.Length)
-            {
-                if (start < 0)
-                    start = 0;
+            if (start < 0)
+                start = 0;
 
-                T[] slice = new T[source.Length - start];
+            T[] slice = new T[source.Length - start];
 
-                for (int i = 0; i + start < source.Length; i++)
-                {
-                    slice[i] = source[i + start];
-                }
-
-                return slice;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static T[] Slice<T>(this T[] source, int start, int length)
-        {
-            if (length < 0)
-                return null;
-
-            T[] slice = new T[length];
-
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i + start < source.Length; i++)
             {
                 slice[i] = source[i + start];
             }
 
             return slice;
         }
-
-        public static int Overlap<T>(this T[] rightArray, T[] leftArray)
+        else
         {
-            int index = 0;
-
-            if (
-                rightArray != null 
-                && leftArray != null 
-                && rightArray.Length > 0 
-                && leftArray.Length > 0 
-                //&& rightArray.Intersect(leftArray).ToArray().Length > 0
-                )
-            {
-                for (int i = 0; i < rightArray.Length && i < leftArray.Length; i++)
-                {
-                    var rightStub = rightArray.Slice(0, i + 1);
-                    var leftStub = leftArray.Slice(leftArray.Length - 1 - i);
-
-                    if (rightStub.SequenceEqual(leftStub))
-                    {
-                        index = i + 1;
-                    }
-                }
-            }
-
-            return index;
+            return null;
         }
     }
 
+    public static T[] Slice<T>(this T[] source, int start, int length)
+    {
+        if (length < 0)
+            return null;
+
+        T[] slice = new T[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            slice[i] = source[i + start];
+        }
+
+        return slice;
+    }
+
+    public static int Overlap<T>(this T[] rightArray, T[] leftArray)
+    {
+        int index = 0;
+
+        if (
+            rightArray != null
+            && leftArray != null
+            && rightArray.Length > 0
+            && leftArray.Length > 0
+            //&& rightArray.Intersect(leftArray).ToArray().Length > 0
+            )
+        {
+            for (int i = 0; i < rightArray.Length && i < leftArray.Length; i++)
+            {
+                var rightStub = rightArray.Slice(0, i + 1);
+                var leftStub = leftArray.Slice(leftArray.Length - 1 - i);
+
+                if (rightStub.SequenceEqual(leftStub))
+                {
+                    index = i + 1;
+                }
+            }
+        }
+
+        return index;
+    }
 }
+

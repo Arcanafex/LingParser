@@ -186,34 +186,13 @@ namespace LingFiddler
             var arguments = (WordModelArguments)e.Argument;
             int progress = 0;
 
-            // TODO: give some sort of admonishment if lexicon is empty
-
-            //if (localNgrams == null)
-            //    localNgrams = new Dictionary<string, int>();
-            //else
-            //    localNgrams.Clear();
-
             foreach (var lex in arguments.Lexicon.Keys)
             {
-                //foreach (var ngram in Lx.Ngram.Parse(lex.Graph, currentNgramSize))
-                //{
-                //    if (localNgrams.ContainsKey(ngram))
-                //    {
-                //        localNgrams[ngram] += 1;
-                //    }
-                //    else
-                //    {
-                //        localNgrams.Add(ngram, 1);
-                //    }
-                //}
-
                 arguments.Model.Parse(lex.Graph.ToCharArray(), arguments.NgramLength);
 
                 string state = lex.Graph;
                 worker.ReportProgress(++progress, state);
             }
-
-            //e.Result = arguments;
         }
 
         private void WordModel_WorkCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -224,6 +203,7 @@ namespace LingFiddler
                 MainWindow.Instance.BackgroundStatus.Text = string.Empty;
 
                 MainWindow.Instance.GenerateWords.IsEnabled = true;
+                MainWindow.Instance.UpdateNgramGrid(MainWindow.Instance.CurrentLanguage.WordModel);
             }
             else if (e.Cancelled)
             {
