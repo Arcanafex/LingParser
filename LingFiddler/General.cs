@@ -11,6 +11,7 @@ namespace Lx
     {
         public static Language CurrentLanguage { get; set; }
 
+        internal readonly Guid id;
         public string Name { get; set; }
         public string Autonym { get; set; }
         public List<string> Exonyms { get; set; }
@@ -18,90 +19,243 @@ namespace Lx
         public ConceptSet Ontology { get; set; }
         public ParadigmSet Morphology { get; set; }
         public Lexicon Lexicon { get; set; }
+        public Corpus Corpus { get; set; }
+    }
+
+    public abstract class Segment
+    {
+        internal readonly Guid id;
+        public string Name { get; set; }
+        public string Graph { get; set; }
+        public SegmentChain<Segment> Composition { get; set; }
+    }
+
+    //public interface ICompositeSegment<T> where T : Segment
+    //{
+    //    SegmentChain<T> SetComposition(List<T> componentSegments);
+    //    SegmentChain<T> GetComposition();
+    //}
+
+    public class SegmentChain<T> : LinkedList<T> where T : Segment
+    {
+
+        public static SegmentChain<T> NewSegmentChain(List<T> segmentList)
+        {
+            var chain = new SegmentChain<T>();
+            foreach (var segment in segmentList)
+            {
+                chain.AddLast(segment);
+            }
+            return chain;
+        }
     }
 
     /// <summary>
     /// a set of Glyphs
     /// </summary>
-    public class Script : Dictionary<Glyph, string>
+    public class Script : Dictionary<char, Glyph>
     {
         public string Name { get; set; }
         // Ordering of the set of glyphs?
-        // public Dictionary<Glyph, string> GlyphInventory { get; set; }
-    }
 
-    public class Glyph
-    {
-        // Ideally, the glyph will be a single unicode code point, with the Grapheme being the combination of, for example, a single character + a diacritic
-
-        public char Graph { get; set; }
-        //image form?
-
-        public Glyph(char symbol)
+        public Glyph AddGlyph(char glyph)
         {
-            this.Graph = symbol;
+            if (ContainsKey(glyph))
+            {
+                return this[glyph];
+            }
+            else
+            {
+                var outGlyph = new Glyph(glyph);
+                Add(glyph, outGlyph);
+                return outGlyph;
+            }
+        }
+
+        public List<Glyph> AddGlyphs(char[] glyphs)
+        {
+            var glyphList = new List<Glyph>();
+
+            foreach (var glyph in glyphs)
+            {
+                glyphList.Add(AddGlyph(glyph));
+            }
+
+            return glyphList;
         }
     }
 
     /// <summary>
-    /// A Graph is a language specific use of a specific glyph or arrangement of glyphs. 
+    /// One or more chars that together act as a single segmental unit making up a Grapheme
     /// </summary>
-    public class Grapheme
+    public class Glyph : Segment//, ICompositeSegment<Glyph>
     {
-        #region Static Members
-        private static HashSet<Grapheme> orthography;
-        public static HashSet<Grapheme> Orthography
+        public Script Script;
+        public List<char> Characters { get; set; }
+        public new SegmentChain<Glyph> Composition { get; set; }
+
+        public Glyph(char symbol)
         {
-            get
+            Characters = new List<char>
             {
-                if (orthography == null)
-                    orthography = new HashSet<Grapheme>();
+                symbol
+            };
 
-                return orthography;
-            }
-            set
-            {
-                orthography = value;
-            }
+            Graph = symbol.ToString();
         }
-        #endregion
 
-        public string Graph { get; set; }
-        public List<Glyph> GlyphChain { get; set; }
-        public int Frequency { get; set; }
+        public Glyph(char[] symbols)
+        {
+            Characters = new List<char>(symbols);
+            Graph = new string(symbols);
+        }
 
-        //context: attested sequences
-        // next graph, frequency
-        // last graph
-        //
+        public override string ToString()
+        {
+            return new string(Characters.ToArray());
+        }
+
+        public SegmentChain<Glyph> SetComposition(List<Glyph> componentSegments)
+        {
+            Composition = SegmentChain<Glyph>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
+
+        public SegmentChain<Glyph> GetComposition()
+        {
+            return Composition;
+        }
+    }
+
+    /// <summary>
+    /// A Grapheme is a language specific application of a specific glyph or arrangement of glyphs. 
+    /// </summary>
+    public class Grapheme : Segment//, ICompositeSegment<Grapheme>
+    {
+        public List<Glyph> Glyphs { get; set; }
+        public new SegmentChain<Grapheme> Composition { get; set; }
+
+        public Grapheme(Glyph glyph)
+        {
+            Glyphs = new List<Glyph>
+            {
+                glyph
+            };
+
+            Graph = new string (glyph.Graph.ToArray());
+        }
+
+        public override string ToString()
+        {
+            string graph = Graph;
+
+            if (Glyphs != null && Glyphs.Count > 0 && Glyphs.First() != null)
+                graph = Glyphs.First().ToString();
+
+            return graph;
+        }
+
+        public SegmentChain<Grapheme> SetComposition(List<Grapheme> componentSegments)
+        {
+            Composition = SegmentChain<Grapheme>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
+
+        public SegmentChain<Grapheme> GetComposition()
+        {
+            return Composition;
+        }
     }
 
     /// <summary>
     /// Orthography is a language-specific application of a script's glyphs
     /// </summary>
-    //public class Orthography : HashSet<Grapheme> { }
+    public class Orthography : Dictionary<Grapheme, int>
+    {
+        public Script Script { get; set; }
+        public Dictionary<Glyph, Schema> Rules { get; set; }
+        //public List<string> Environments;
 
+        // Rules for glyph expression
+        public class Schema
+        {
+            public Glyph Lemma { get; set; }
+            public List<string> Environments { get; set; }
+            public Glyph Form { get; set; }
+        }
+
+        internal List<Grapheme> AddGraphemes(List<Glyph> glyphs)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Grapheme AddGrapheme(Glyph glyph)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// A Mapping between a Glyph and a Grapheme
+    /// </summary>
+    public class Transliteration
+    {
+        public class Schema
+        {
+            public Glyph Glyph { get; set; }
+            public Grapheme Grapheme { get; set; }
+        }
+    }
+
+    public class Phoneme : Segment { }
+
+    public class Phonology { }
 
     /// <summary>
     /// Class representing the surface word form.
     /// </summary>
-    public class Morpheme
+    public class Morpheme : Segment
     {
-        public string Graph { get; set; }
+        //public string Graph { get; set; }
         public int Length { get { return Graph.Length; } }
 
-        public List<Grapheme> GraphemeChain { get; set; }
-        public List<Phoneme> PhonemeChain { get; set; }
-        public HashSet<Expression> Expressions { get; set; }
+        public List<SegmentChain<Grapheme>> GraphemeChain { get; set; }
+        public List<SegmentChain<Phoneme>> PhonemeChain { get; set; }
         public Concept Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
 
         public Morpheme(string graph)
         {
-            this.Graph = graph;
-        }            
+            Graph = graph;
 
-        public static bool operator== (Morpheme left, Morpheme right)
+            GraphemeChain = new List<SegmentChain<Grapheme>>();
+            PhonemeChain = new List<SegmentChain<Phoneme>>();
+            Meaning = new Concept();
+            Features = new HashSet<Feature>();
+        }
+
+        public Morpheme(SegmentChain<Grapheme> glyphChain)
+        {
+            Graph = glyphChain.ToString();
+
+            GraphemeChain = new List<SegmentChain<Grapheme>>() { glyphChain };
+            PhonemeChain = new List<SegmentChain<Phoneme>>();
+            Meaning = new Concept();
+            Features = new HashSet<Feature>();
+        }
+
+        public Morpheme(List<Grapheme> graphemes)
+        {
+            var graphemeChain = SegmentChain<Grapheme>.NewSegmentChain(graphemes);
+            Graph = graphemeChain.ToString();
+
+            GraphemeChain = new List<SegmentChain<Grapheme>>() { graphemeChain };
+            PhonemeChain = new List<SegmentChain<Phoneme>>();
+            Meaning = new Concept();
+            Features = new HashSet<Feature>();
+        }
+
+        public static bool operator ==(Morpheme left, Morpheme right)
         {
             if (left is null)
                 return right is null;
@@ -109,9 +263,9 @@ namespace Lx
                 return left.Equals(right);
         }
 
-        public static bool operator!= (Morpheme left, Morpheme right)
+        public static bool operator !=(Morpheme left, Morpheme right)
         {
-            return !(left == right);
+            return !(left.Equals(right));
         }
 
         public bool Equals(Morpheme other)
@@ -124,7 +278,7 @@ namespace Lx
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as Morpheme);            
+            return Equals(obj as Morpheme);
         }
 
         public override string ToString()
@@ -140,87 +294,214 @@ namespace Lx
 
     public class FiniteStateAutomoton<T>
     {
-        //public int Size { get; set; }
+        public Dictionary<T, Node<T>> States { get; private set; }
+        public Dictionary<NodeChain<T>, Dictionary<Node<T>, Transition<T>>> Transitions { get; private set; }        
 
-        public Node<T> Start { get; private set; }
-        public Node<T> End { get; private set; }
-        public HashSet<Node<T>> States { get; private set; }
-
-        public FiniteStateAutomoton()//int size = 2)
+        public FiniteStateAutomoton()
         {
-            //Size = size;
-            Start = Node<T>.Start;
-            End = Node<T>.End;
-            States = new HashSet<Node<T>>();
+            States = new Dictionary<T, Node<T>>();
+            Transitions = new Dictionary<NodeChain<T>, Dictionary<Node<T>, Transition<T>>>();
         }
 
-        public void AddTransition(T[] from, T[] to)
+        //public void AddTransition(T[] from, T[] to)
+        //{
+        //    Node<T> startNode;
+        //    Node<T> endNode;
+
+        //    if (from == null)
+        //    {
+        //        startNode = Start;
+        //    }
+        //    else
+        //    {
+        //        startNode = States.FirstOrDefault(n => n.Value.SequenceEqual(from));
+
+        //        if (startNode == null)
+        //        {
+        //            startNode = new Node<T>(from);
+        //        }
+
+        //        States.Add(startNode);
+        //    }
+
+        //    if (to == null)
+        //    {
+        //        endNode = End;
+        //    }
+        //    else
+        //    {
+        //        endNode = States.FirstOrDefault(n => n.Value.SequenceEqual(to));
+
+        //        if (endNode == null)
+        //            endNode = new Node<T>(to);
+
+        //        States.Add(endNode);
+        //    }
+
+        //    startNode.AddTransition(endNode);
+        //}
+
+        public Node<T> AddNode(T segment)
         {
-            Node<T> startNode;
-            Node<T> endNode;
+            var node = GetNode(segment);
 
-            if (from == null)
+            if (node == null)
             {
-                startNode = Start;
-            }
-            else
-            {
-                startNode = States.FirstOrDefault(n => n.Value.SequenceEqual(from));
-
-                if (startNode == null)
-                {
-                    startNode = new Node<T>(from);
-                }
-
-                States.Add(startNode);
+                node = new Node<T>(this, segment);
+                States.Add(segment, node);
             }
 
-            if (to == null)
-            {
-                endNode = End;
-            }
-            else
-            {
-                endNode = States.FirstOrDefault(n => n.Value.SequenceEqual(to));
 
-                if (endNode == null)
-                    endNode = new Node<T>(to);
-
-                States.Add(endNode);
-            }
-
-            startNode.AddTransition(endNode);
+            return node;
         }
 
-        public void Parse(T[] input, int size)
+        public void AddTransition(Transition<T> transition)
         {
-            var ngrams = new Queue<T[]>();
+            AddTransition(transition.Chain, transition.EndState, transition.Weight);
+        }
 
-            if (input != null && input as IEnumerable != null)
+        public void AddTransition(Node<T> from, Node<T> to, int weight = 1)
+        {
+            AddTransition(from.ToChain(), to, weight);
+        }
+
+        public void AddTransition(NodeChain<T> from, Node<T> to, int weight = 1)
+        {
+            // TODO: Verify all nodes are present in model's sets
+
+            var toNode = to.Value != null ? AddNode(to.Value) : to;
+            var fromChain = new NodeChain<T>();
+
+            foreach (var node in from)
             {
-                if (size > input.Length)
+                if (node.Value == null)
+                    fromChain.Add(node);
+                else
+                    fromChain.Add(AddNode(node.Value));
+            }
+
+            if (Transitions.ContainsKey(from))
+            {
+                if (Transitions[from].ContainsKey(to))
                 {
-                    ngrams.Enqueue(input);
+                    Transitions[from][to].Weight += weight;
                 }
                 else
                 {
-                    for (int i = 0; i + size <= input.Length; i++)
+                    var transition = new Transition<T>()
                     {
-                        ngrams.Enqueue(input.Slice(i, size));
+                        Chain = from,
+                        EndState = to,
+                        Weight = weight
+                    };
+
+                    Transitions[from].Add(to, transition);
+                }
+            }
+            else
+            {
+                var transitions = new Dictionary<Node<T>, Transition<T>>
+                {
+                    {
+                        to,
+                        new Transition<T>()
+                        {
+                            Chain = from,
+                            EndState = to,
+                            Weight = weight
+                        }
+                    }
+                };
+
+                Transitions.Add(from, transitions);
+            }
+        }
+
+        //public NodeChain<T> StartChain(Node<T> node)
+        //{
+        //    var chain = new NodeChain<T>(this);
+        //    chain.AddLast(node);
+
+        //    return chain;
+        //}
+
+        //public NodeChain<T> StartChain(IEnumerable<Node<T>> nodes)
+        //{
+        //    var chain = new NodeChain<T>(this);
+
+        //    foreach (var node in nodes)
+        //    {
+        //        chain.AddLast(node);
+        //    }
+
+        //    return chain;
+        //}
+
+        public Node<T> GetNode(T segment)
+        {
+            if (segment == null)
+                return null;
+
+            return States.ContainsKey(segment) ? States[segment] : null;
+        }
+
+        public Dictionary<Node<T>, Transition<T>> GetTransitions(Node<T> node)
+        {
+            return GetTransitions(new List<Node<T>>() { node });
+        }
+
+        public Dictionary<Node<T>, Transition<T>> GetTransitions(IEnumerable<Node<T>> chain = null)
+        {
+            var transitions = new Dictionary<Node<T>, Transition<T>>();
+            var sequence = chain.ToChain();
+
+            if (Transitions.Count > 0)
+            {
+                if (sequence.Count == 0)
+                {
+                    transitions = Transitions[Node<T>.Start.ToChain()];
+                }
+                if (Transitions.ContainsKey(sequence))
+                {
+                    transitions = Transitions[sequence];
+                }
+                else
+                {
+                    int skip = 0;
+
+                    while (transitions.Count == 0 && skip < sequence.Count)
+                    {
+                        var key = sequence.Skip(++skip).ToChain();
+                        if (Transitions.ContainsKey(key))
+                            transitions = Transitions[key];
                     }
                 }
             }
 
-            T[] from = null;
+            return transitions;
+        }
 
-            while (ngrams.Count > 0)
+        public void Parse(T[] input, int length)
+        {
+            var chain = new Queue<Node<T>>();
+            chain.Enqueue(Node<T>.Start);
+
+            if (input != null && input.Length > 0)
             {
-                T[] to = ngrams.Dequeue();
-                AddTransition(from, to);
-                from = to;
-            }
+                foreach (var item in input)
+                {
+                    var node = AddNode(item);
+                    AddTransition(chain.ToChain(), node);
+                    chain.Enqueue(node);
 
-            AddTransition(from, null);
+                    if (chain.Peek() == Node<T>.Start || chain.Count > length)
+                    {
+                        chain.Dequeue();
+                    }
+                }
+
+                AddTransition(chain.ToChain(), Node<T>.End);
+            }
         }
 
         public List<T> GenerateRandomChain()
@@ -232,44 +513,36 @@ namespace Lx
 
         public List<T> GenerateRandomChain(Random random)
         {
-            var ngramQueue = new Queue<T[]>();
+            var randomWalk = new NodeChain<T>();
 
-            Node<T> currentNode = Start.GetNext(random);
+            Node<T> currentState = GetNext(randomWalk, random);
 
-            while (currentNode.Type == NodeType.End)
+            while (currentState.Type != NodeType.End)
             {
-                if (Start.Transitions.Count == 0)
-                {
-                    return new List<T>();
-                }
-                else
-                {
-                    // TODO: prevent Start from having transitions directly to End, cause that's maybe pointless?
-                    currentNode = Start.GetNext(random);
-                }
+                randomWalk.Add(currentState);
+                currentState = GetNext(randomWalk, random);
             }
 
-            while (currentNode.Type != NodeType.End)
+            return randomWalk.Select(s => s.Value).ToList();
+        }
+
+        public Node<T> GetNext(IEnumerable<Node<T>> chain, Random random)
+        {
+            var transitions = GetTransitions(chain);
+            int total = transitions.Sum(t => t.Value.Weight) + 1;
+            int pick = random.Next(total);
+
+            foreach (var transition in transitions.Values)
             {
-                ngramQueue.Enqueue(currentNode.Value);
-                currentNode = currentNode.GetNext(random);                 
-            }
+                pick -= transition.Weight;
 
-            var output = new List<T>(ngramQueue.Dequeue());
-
-            while (ngramQueue.Count > 0)
-            {
-                var suffix = ngramQueue.Dequeue();
-                var index = suffix.Overlap(output.ToArray());
-                var segments = suffix.Length > index ? suffix.Slice(index) : new T[] { suffix.Last() };
-
-                foreach (var segment in segments)
+                if (pick <= 0)
                 {
-                    output.Add(segment);
+                    return transition.EndState;
                 }
             }
 
-            return output;
+            return Node<T>.End;
         }
     }
 
@@ -277,26 +550,23 @@ namespace Lx
 
     public class Node<T>
     {
-        internal readonly NodeType type;
-        public NodeType Type
-        {
-            get { return type; }
-        }
+        internal readonly Guid id;
+        public NodeType Type { get; }
+        public FiniteStateAutomoton<T> Parent { get; }
+        public T Value { get; private set; }
 
-        public T[] Value { get; private set; }
-        public Dictionary<Node<T>, int> Transitions { get; private set; }
-
-        public Node(T[] value)
+        internal Node(FiniteStateAutomoton<T> parent, T value)
         {
-            type = NodeType.Value;
+            id = Guid.NewGuid();
+            Parent = parent;
+            Type = NodeType.Value;
             Value = value;
-            Transitions = new Dictionary<Node<T>, int>();
         }
 
         internal Node(NodeType type)
         {
-            this.type = type;
-            Transitions = new Dictionary<Node<T>, int>();
+            this.id = new Guid((int)type, 0, 0, new byte[8]);
+            this.Type = type;
         }
 
         public static Node<T> Start
@@ -315,42 +585,51 @@ namespace Lx
             }
         }
 
-        public void UpdateValue(T[] value)
+        public void UpdateValue(T value)
         {
+            if (Value.Equals(value))
+                return;
+
+            if (Parent != null)
+            {
+                Parent.States.Remove(Value);
+                Parent.States.Add(value, this);
+            }
+
             Value = value;
         }
 
-        public void AddTransition(Node<T> to, int weight = 1)
-        {
-            if (Transitions.ContainsKey(to))
-            {
-                Transitions[to] += weight;
-            }
-            else
-            {
-                Transitions.Add(to, weight);
-            }
-        }
+        //public void AddTransition(Node<T> to, int weight = 1)
+        //{
+        //    if (Transitions.ContainsKey(to))
+        //    {
+        //        Transitions[to] += weight;
+        //    }
+        //    else
+        //    {
+        //        Transitions.Add(to, weight);
+        //    }
+        //}
 
-        public Node<T> GetNext(Random random)
-        {
-            int total = Transitions.Values.Sum();
-            int pick = random.Next(total);
+        //public Node<T> GetNext(Random random)
+        //{
+        //    int total = Transitions.Values.Sum();
+        //    int pick = random.Next(total);
 
-            foreach(var node in Transitions.Keys)
-            {
-                pick -= Transitions[node];
+        //    foreach(var node in Transitions.Keys)
+        //    {
+        //        pick -= Transitions[node];
 
-                if (pick <= 0)
-                {
-                    return node;
-                }
-            }
+        //        if (pick <= 0)
+        //        {
+        //            return node;
+        //        }
+        //    }
 
-            return End;
-        }
+        //    return End;
+        //}
 
-        public static bool operator== (Node<T> left, Node<T> right)
+        public static bool operator ==(Node<T> left, Node<T> right)
         {
             if (left is null)
                 return right is null;
@@ -358,186 +637,374 @@ namespace Lx
                 return left.Equals(right);
         }
 
-        public static bool operator!=(Node<T> left, Node<T> right)
+        public static bool operator !=(Node<T> left, Node<T> right)
         {
-            return !left.Equals(right); 
+            return !(left.Equals(right));
         }
 
         public override bool Equals(object obj)
         {
-            if (!(obj is Node<T> other))
-                return false;
+            if (obj is Node<T>)
+                return Equals((Node<T>)obj);
             else
-                return Equals(other);
+                return false;
         }
 
         public bool Equals(Node<T> other)
         {
-            if (other is null)
+            if (other is null || Type != other.Type)
                 return false;
 
-            if (
-                (Type == NodeType.Start && other.Type == NodeType.Start)
-                || (Type == NodeType.End && other.Type == NodeType.End)
-                )
+            if (id == other.id)
                 return true;
-
-            if (Value != null && other.Value != null && Value.Length == other.Value.Length)
-            {
-                return Value.SequenceEqual(other.Value);
-            }
-
-            return false;
-        }
-    }
-
-    public class Ngram
-    {
-        private string[] ngram;
-        private string value;
-
-        public Ngram(int n = 1)
-        {
-            ngram = new string[n];
+            else
+                return false;
         }
 
-        public Ngram(string gram)
+        public override int GetHashCode()
         {
-            ngram = gram.ToCharArray().Select(n => n.ToString()).ToArray();
-        }
-
-        public string Onset
-        {
-            get
-            {
-                return ngram.First();
-            }
-            set
-            {
-                ngram[0] = string.IsNullOrEmpty(value) ? ngram[0] = string.Empty : ngram[0] = value;
-            }
-        }
-
-        public string Coda
-        {
-            get
-            {
-                return ngram.Last();
-            }
-            set
-            {
-                int i = ngram.Length - 1;
-                ngram[i] = string.IsNullOrEmpty(value) ? ngram[i] = string.Empty : ngram[i] = value;
-            }
-        }
-
-        public string this[int i]
-        {
-            get
-            {
-                return ngram[i];
-            }
-            set
-            {
-                ngram[i] = value;
-            }
-        }
-
-        public string Value
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(value))
-                    value = ToString();
-
-                return value;
-            }
-        }
-
-        public static List<string> Parse(string input, int n, string pattern = "")
-        {
-            var ngrams = new List<string>();
-
-            if (!string.IsNullOrEmpty(input))
-            {
-                if (string.IsNullOrEmpty(pattern))
-                {
-                    // Only include edges in bigrams or longer
-                    if (n > 1)
-                        input = "_" + input + "_";
-
-                    for(int i = 0; i + n <= input.Length; i++)
-                    {
-                        ngrams.Add(input.Substring(i, n));
-                    }
-                }
-            }
-
-            return ngrams;
+            return BitConverter.ToInt32(id.ToByteArray(), 0);
         }
 
         public override string ToString()
         {
-            return ToString();
+            if (Type == NodeType.Value)
+                return Value.ToString();
+            else
+                return $"[{Type.ToString()}]";
+        }
+    }
+
+    public class NodeChain<T> : List<Node<T>>
+    {
+        public static bool operator== (NodeChain<T> left, NodeChain<T> right)
+        {
+            if (left is null)
+                return right is null;
+
+            return left.Equals(right);
         }
 
-        public string ToString(string separator = "", string edges = "_")
+        public static bool operator!= (NodeChain<T> left, NodeChain<T> right)
         {
-            return ToString(separator, edges, edges);
+            return !(left.Equals(right));
         }
 
-        public string ToString(string separator, string left, string right)
+        public bool Equals(NodeChain<T> other)
         {
-            StringBuilder ngramstring = new StringBuilder();
+            if (other is null)
+                return false;
 
-            for (int n = 0; n < ngram.Length; n++)
+            if (this.Count == other.Count)
             {
-                if (n == 0)
+                if (Count == 1)
                 {
-                    ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? left : ngram[n]);
-                }
-                else 
-                {
-                    ngramstring.Append(separator);
 
-                    if (n == ngram.Length - 1)
-                    {
-                        ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? right : ngram[n]);
-                    }
-                    else
-                    {
-                        ngramstring.Append(ngram[n]);
-                    }
+                }
+
+                for(int i = 0; i < Count; i++)
+                {
+                    if (this[i] != other[i])
+                        return false;
                 }
             }
 
-            return ngramstring.ToString();
+            return true;
         }
 
-        //public override bool Equals(object obj)
-        //{
-        //    if (obj is Ngram)
-        //    {
-        //        var nobj = obj as Ngram;
+        public override bool Equals(object obj)
+        {
+            return obj is NodeChain<T> ? Equals((NodeChain<T>)obj) : false;
+        }
 
-        //        return this.ToString() == nobj.ToString();
-        //    }
-        //    else
-        //    {
-        //        return false;
-        //    }
-        //}
+        public override int GetHashCode()
+        {
+            int thing = 0;
+
+            foreach (Node<T> item in this)
+            {
+                thing += BitConverter.ToInt32(item.id.ToByteArray(), 0);
+            }            
+
+            return thing;
+        }
+
+        public override string ToString()
+        {
+            return ToString(string.Empty);
+        }
+
+        public string ToString(string separator)
+        {
+            var builder = new StringBuilder();
+            int i = 0;
+
+            foreach (var node in this)
+            {
+                builder.Append(node.ToString());
+
+                if (++i < this.Count)
+                    builder.Append(separator);
+            }
+
+            return builder.ToString();
+        }
 
     }
 
+    public static class NodeChainExtensions
+    {
+        public static NodeChain<T> ToChain<T>(this IEnumerable<Node<T>> list)
+        {
+            var chain = new NodeChain<T>();
+
+            foreach (var item in list)
+            {
+                chain.Add(item);
+            }
+
+            return chain;
+        }
+
+        public static NodeChain<T> ToChain<T>(this Node<T> node)
+        {
+            var chain = new NodeChain<T>();
+            chain.Add(node);
+            return chain;
+        }
+
+    }
+
+    public class TransitionTable<T> : Dictionary<List<Node<T>>, Dictionary<Node<T>, Transition<T>>>
+    {
+
+    }
+
+    public class Transition<T>
+    {
+        public NodeChain<T> Chain;
+        public Node<T> EndState;
+        public int Weight;
+
+        public FiniteStateAutomoton<T> ParentModel
+        {
+            get
+            {
+                return EndState.Parent;
+            }
+        }
+
+        public void MergeTransition(Transition<T> mergee)
+        {
+            if (mergee == null)
+                return;
+
+            if (mergee.ParentModel != null && mergee.ParentModel.Transitions.ContainsKey(mergee.Chain))
+            {
+                if (mergee.ParentModel.Transitions[mergee.Chain].Remove(mergee.EndState))
+                {
+                    if (mergee.ParentModel.Transitions[mergee.Chain].Count == 0)
+                        mergee.ParentModel.Transitions.Remove(mergee.Chain);
+                }
+            }
+
+            Weight += mergee.Weight;
+        }
+
+        public static bool operator== (Transition<T> left, Transition<T> right)
+        {
+            if (left is null)
+                return right is null;
+
+            return left.Equals(right);
+        }
+
+        public static bool operator!= (Transition<T> left, Transition<T> right)
+        {
+            return !(left.Equals(right));
+        }
+
+        public bool Equals(Transition<T> other)
+        {
+            if (other == null)
+                return false;
+
+            return EndState == other.EndState && Chain.SequenceEqual(other.Chain);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Transition<T>);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+    }
+
+    //public class Ngram
+    //{
+    //    private string[] ngram;
+    //    private string value;
+
+    //    public Ngram(int n = 1)
+    //    {
+    //        ngram = new string[n];
+    //    }
+
+    //    public Ngram(string gram)
+    //    {
+    //        ngram = gram.ToCharArray().Select(n => n.ToString()).ToArray();
+    //    }
+
+    //    public string Onset
+    //    {
+    //        get
+    //        {
+    //            return ngram.First();
+    //        }
+    //        set
+    //        {
+    //            ngram[0] = string.IsNullOrEmpty(value) ? ngram[0] = string.Empty : ngram[0] = value;
+    //        }
+    //    }
+
+    //    public string Coda
+    //    {
+    //        get
+    //        {
+    //            return ngram.Last();
+    //        }
+    //        set
+    //        {
+    //            int i = ngram.Length - 1;
+    //            ngram[i] = string.IsNullOrEmpty(value) ? ngram[i] = string.Empty : ngram[i] = value;
+    //        }
+    //    }
+
+    //    public string this[int i]
+    //    {
+    //        get
+    //        {
+    //            return ngram[i];
+    //        }
+    //        set
+    //        {
+    //            ngram[i] = value;
+    //        }
+    //    }
+
+    //    public string Value
+    //    {
+    //        get
+    //        {
+    //            if (string.IsNullOrEmpty(value))
+    //                value = ToString();
+
+    //            return value;
+    //        }
+    //    }
+
+    //    public static List<string> Parse(string input, int n, string pattern = "")
+    //    {
+    //        var ngrams = new List<string>();
+
+    //        if (!string.IsNullOrEmpty(input))
+    //        {
+    //            if (string.IsNullOrEmpty(pattern))
+    //            {
+    //                // Only include edges in bigrams or longer
+    //                if (n > 1)
+    //                    input = "_" + input + "_";
+
+    //                for(int i = 0; i + n <= input.Length; i++)
+    //                {
+    //                    ngrams.Add(input.Substring(i, n));
+    //                }
+    //            }
+    //        }
+
+    //        return ngrams;
+    //    }
+
+    //    public override string ToString()
+    //    {
+    //        return ToString();
+    //    }
+
+    //    public string ToString(string separator = "", string edges = "_")
+    //    {
+    //        return ToString(separator, edges, edges);
+    //    }
+
+    //    public string ToString(string separator, string left, string right)
+    //    {
+    //        StringBuilder ngramstring = new StringBuilder();
+
+    //        for (int n = 0; n < ngram.Length; n++)
+    //        {
+    //            if (n == 0)
+    //            {
+    //                ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? left : ngram[n]);
+    //            }
+    //            else 
+    //            {
+    //                ngramstring.Append(separator);
+
+    //                if (n == ngram.Length - 1)
+    //                {
+    //                    ngramstring.Append(string.IsNullOrEmpty(ngram[n]) ? right : ngram[n]);
+    //                }
+    //                else
+    //                {
+    //                    ngramstring.Append(ngram[n]);
+    //                }
+    //            }
+    //        }
+
+    //        return ngramstring.ToString();
+    //    }
+
+    //    //public override bool Equals(object obj)
+    //    //{
+    //    //    if (obj is Ngram)
+    //    //    {
+    //    //        var nobj = obj as Ngram;
+
+    //    //        return this.ToString() == nobj.ToString();
+    //    //    }
+    //    //    else
+    //    //    {
+    //    //        return false;
+    //    //    }
+    //    //}
+
+    //}
+
     public class Lexicon : Dictionary<Morpheme, int>
     {
+        public Lx.Orthography Orthography;
+
         public int UniqueWordCount
         {
             get
             {
                 return Keys.Count;
             }
+        }
+
+        public Morpheme Add(List<Grapheme> graphemes, int weight = 1)
+        {
+            var graphemeChain = SegmentChain<Grapheme>.NewSegmentChain(graphemes);
+            var thisWord = Keys.FirstOrDefault(w => w.GraphemeChain.Contains(graphemeChain));
+
+            if (thisWord == null)
+            {
+                thisWord = new Morpheme(graphemeChain);
+            }
+
+            return thisWord;
         }
 
         public Morpheme Add(string word, int weight = 1)
@@ -614,51 +1081,105 @@ namespace Lx
 
     }
 
-    //public struct Context<T>
-    //{
-    //    public T Item;
-    //    public int Frequency;
-    //    //N Levels deep?
-    //    public List<Context<T>> Subcontext;
-    //}
-
-
-
-    public class Expression : List<Morpheme>
+    public class Expression : Segment//, ICompositeSegment<Expression>
     {
+        public SegmentChain<Morpheme> Sequence { get; set; }
+        public new SegmentChain<Expression> Composition;
+
         public Expression(string rawExpression = "")
         {
             Graph = rawExpression;
         }
 
-        public enum GrammaticalityJudgement { Good, Bad, Weird }
-
-        public string Graph { get; set; }
+        public enum GrammaticalityJudgement { Good, Marginal, Bad, Weird }
         public HashSet<string> Translations { get; set; }
         public GrammaticalityJudgement Judgement { get; set; }
         public Language Language { get; set; }
 
-        // context? This may be retrieved from Text set
-        // discourse context? e.g. semantic/pragmatic assumptions affection expression
-        // leaving aside issues of code-switching for now, wrt Language source
+        public override string ToString()
+        {
+            //var expression = new StringBuilder();
+            //Morpheme lastMorpheme = null;
+
+            //foreach (var morpheme in this)
+            //{
+            //    if (lastMorpheme)
+            //}
+
+            return string.Join("", Sequence);
+        }
+
+        public SegmentChain<Expression> SetComposition(List<Expression> componentSegments)
+        {
+            Composition = SegmentChain<Expression>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
+
+        internal void AddLast(Morpheme morph)
+        {
+            throw new NotImplementedException();
+        }
+
+        //public SegmentChain<Expression> GetComposition()
+        //{
+        //    return Composition;
+        //}
+    }
+
+    /// <summary>
+    /// A linked list of Expression objects; expected to form a larger discourse unit. 
+    /// e.g. a paragraph, a dialogue, etc.
+    /// </summary>
+    /// 
+    public class Discourse : Segment//, ICompositeSegment<Discourse>
+    {
+        public SegmentChain<Expression> Expressions { get; set; }
+        public new SegmentChain<Discourse> Composition { get; set; }
+
+        public SegmentChain<Discourse> GetComposition()
+        {
+            return Composition;
+        }
+
+        public SegmentChain<Discourse> SetComposition(List<Discourse> componentSegments)
+        {
+            Composition = SegmentChain<Discourse>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
 
         public override string ToString()
         {
-            return string.Join(" ", this);
+            return string.Join("\n", Expressions.Select(exp => exp.Graph).ToArray());
+        }
+
+        internal void AddLast(Expression expression)
+        {
+            throw new NotImplementedException();
         }
     }
 
-    public class Text : List<Expression>
+    public class Text : Segment
     {
-        //a set of Expressions
+        public SegmentChain<Discourse> Discourse { get; set; }
+        public new SegmentChain<Text> Composition;
+
+        //a set of Discourse units of Expressions
         public string Title { get; set; }
         public Lexicon Lexicon { get; set; }
-        public Lexicon Morphosyntax { get; set; }
+        public Lexicon Paralexicon { get; set; }
+        public int Count
+        {
+            get
+            {
+                return Discourse.Count;
+            }
+        }
 
         public Text()
         {
+            //Paragraphs = new List<List<Expression>>();
             Lexicon = new Lexicon();
-            Morphosyntax = new Lexicon
+            Paralexicon = new Lexicon
             {
                 string.Empty
             };
@@ -668,27 +1189,37 @@ namespace Lx
         {
             var text = new StringBuilder();
 
-            foreach (var exp in this)
+            foreach (var paragraph in Discourse)
             {
-                text.Append(exp.Graph);
+                text.AppendLine(paragraph.ToString());
                 text.AppendLine();
             }
 
             return text.ToString();
         }
+
+        internal void AddLast(Discourse paragraph)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void Clear()
+        {
+            Discourse.Clear();
+            Composition.Clear();
+        }
     }
 
+    /// <summary>
+    /// A collection of Texts.
+    /// </summary>
     public class Corpus : HashSet<Text>
     {
         //a set of Texts
         public string Title { get; set; }
-        //public HashSet<Text> Texts { get; set; }
         public string Description { get; set; }
     }
 
-    public class Phoneme { }
-
-    public class Phonology { }
 
     public class Concept
     {

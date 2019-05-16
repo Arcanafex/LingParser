@@ -1,51 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace LingFiddler
 {
     internal class LingMachine
     {
-        protected Lx.Text text;
-        public Lx.Text Text
-        {
-            get
-            {
-                if (text == null)
-                    text = new Lx.Text();
+        public Lx.Text Text { get; set; }
+        public Lx.Lexicon Lexicon { get; set; }
+        public Lx.Script Script { get; set; }
+        public Lx.Orthography Orthography { get; set; }
 
-                return text;
-            }
-
-            set
-            {
-                text = value;
-            }
-        }
-
-        protected Lx.Lexicon lexicon;
-        public Lx.Lexicon Lexicon
-        {
-            get
-            {
-                if (lexicon == null)
-                    lexicon = new Lx.Lexicon();
-
-                return lexicon;
-            }
-
-            set
-            {
-                lexicon = value;
-            }
-        }
-
+        public Regex ParagraphPattern { get; set; }
         public Regex LinePattern { get; set; }
         public Regex WordPattern { get; set; }
         public Regex PunctuationPattern { get; set; }
 
-        public Lx.FiniteStateAutomoton<char> WordModel;
+        public Lx.FiniteStateAutomoton<Lx.Grapheme> WordModel;
         public Lx.FiniteStateAutomoton<string> TextModel;
 
         public Lx.Text GeneratedText { get; set; }
@@ -53,7 +28,65 @@ namespace LingFiddler
 
         public LingMachine()
         {
+            Text = new Lx.Text();
+            Lexicon = new Lx.Lexicon();
+            GeneratedText = new Lx.Text();
+            GeneratedLexicon = new Lx.Lexicon();
+            Script = new Lx.Script();
+            Orthography = new Lx.Orthography();
+        }
 
+        public void LoadText(string filePath)
+        {
+            //var worker = new BackgroundWorker();
+            //worker.DoWork += LoadText_DoWork;
+            //worker.ProgressChanged += LoadText_ProgressChanged;
+            //worker.RunWorkerCompleted += LoadText_WorkCompleted;
+            //worker.WorkerReportsProgress = true;
+
+            var lines = File.ReadAllLines(filePath, Encoding.UTF8);
+
+            //worker.RunWorkerAsync(lines);
+
+            MainWindow.Instance.UpdateTextView(string.Join("\n", lines), MainWindow.ViewMode.Text);
+        }
+
+        private void LoadText_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            var text = (StringBuilder)e.UserState;
+            MainWindow.Instance.UpdateTextView(text.ToString(), MainWindow.ViewMode.Text);
+        }
+
+        private void LoadText_DoWork(object sender, DoWorkEventArgs e)
+        {
+            var worker = sender as BackgroundWorker;
+            var text = (string[])e.Argument;
+            var builder = new StringBuilder();
+            int lineCounter = 0;
+
+            foreach (var line in text)
+            {
+                builder.AppendLine(line);
+                worker.ReportProgress(lineCounter++, builder);
+                System.Threading.Thread.Sleep(10);
+            }
+        }
+
+        private void LoadText_WorkCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if (!e.Cancelled && e.Error == null)
+            {
+                MainWindow.Instance.BackgroundProgress.Value = 0;
+                MainWindow.Instance.BackgroundStatus.Text = string.Empty;
+            }
+            else if (e.Cancelled)
+            {
+                // action cancelled
+            }
+            else
+            {
+                // an error occurred
+            }
         }
 
         public void ParseText(string text)
@@ -63,6 +96,7 @@ namespace LingFiddler
 
             MainWindow.Instance.ParseText.IsEnabled = false;
             MainWindow.Instance.BackgroundProgress.Maximum = MainWindow.Instance.countLine;
+            //MainWindow.Instance.BackgroundProgress.Maximum = MainWindow.Instance.CountLine;
 
             var worker = new BackgroundWorker();
             worker.DoWork += ParseText_DoWork;
@@ -85,33 +119,52 @@ namespace LingFiddler
             string state = string.Empty;
 
             // TODO: handling of paragraph breaks and section headers, etc
-
-            foreach (Match l in LinePattern.Matches(text))
+            foreach (Match p in ParagraphPattern.Matches(text))
             {
-                //store line, section up into words and punctuation
-                string cleanedLine = l.Value.Trim();
-                cleanedLine = whiteSpacePattern.Replace(cleanedLine, " ");
-                state = cleanedLine;
+                string paragraphText = p.Value.Trim();
+                paragraphText = whiteSpacePattern.Replace(paragraphText, " ");
+                var paragraph = new Lx.Discourse();
+                Text.AddLast(paragraph);
 
-                var thisExpression = new Lx.Expression(cleanedLine);
-
-                foreach (Match m in expElementPattern.Matches(thisExpression.Graph))
+                foreach (Match l in LinePattern.Matches(paragraphText))
                 {
-                    if (m.Groups.Count > 0)
-                    {
-                        if (string.IsNullOrEmpty(m.Groups[1].Value))
-                        {
-                            thisExpression.Add(Text.Lexicon.Add(m.Groups[2].Value));                            
-                        }
-                        else
-                        {
-                            thisExpression.Add(Text.Morphosyntax.Add(m.Groups[1].Value));
-                        }
-                    }                    
-                }
+                    //store line, section up into words and punctuation
+                    string cleanedLine = l.Value.Trim();
+                    //cleanedLine = whiteSpacePattern.Replace(cleanedLine, " ");
+                    state = cleanedLine;
 
-                Text.Add(thisExpression);
-                worker.ReportProgress(++progress, state);
+                    var expression = new Lx.Expression(cleanedLine);
+                    paragraph.AddLast(expression);
+
+                    foreach (Match m in expElementPattern.Matches(expression.Graph))
+                    {
+                        if (m.Groups.Count > 0)
+                        {
+                            // string m => List<Glyphs>
+                            var glyphs = Script.AddGlyphs(m.Value.ToCharArray());
+
+                            // List<Glyph> => List<Grapheme>
+                            var graphemes = Orthography.AddGraphemes(glyphs);
+
+                            // List<Grapheme> => Morpheme
+
+                            if (string.IsNullOrEmpty(m.Groups[1].Value))
+                            {
+                                var morph = Text.Lexicon.Add(m.Groups[2].Value);
+                                morph.GraphemeChain.Add(Lx.SegmentChain<Lx.Grapheme>.NewSegmentChain(graphemes));
+                                expression.AddLast(morph);
+                            }
+                            else
+                            {
+                                expression.AddLast(Text.Paralexicon.Add(m.Groups[1].Value));
+                            }
+
+
+                        }
+                    }
+
+                    worker.ReportProgress(++progress, state);
+                }
             }
 
             UpdateLocalLexicon();
@@ -123,7 +176,8 @@ namespace LingFiddler
             {
                 MainWindow.Instance.BackgroundProgress.Value = 0;
                 MainWindow.Instance.BackgroundStatus.Text = string.Empty;
-                MainWindow.Instance.UpdateWordGrid();
+                //MainWindow.Instance.UpdateWordGrid();
+                MainWindow.Instance.GridModeSelector.SelectedItem = MainWindow.Instance.ShowWords;
 
                 MainWindow.Instance.ParseNgrams.IsEnabled = true;
                 MainWindow.Instance.ParseTextModel.IsEnabled = true;
@@ -154,7 +208,7 @@ namespace LingFiddler
             MainWindow.Instance.GenerateWords.IsEnabled = false;
             MainWindow.Instance.BackgroundProgress.Maximum = lexicon.Count;
 
-            WordModel = new Lx.FiniteStateAutomoton<char>();
+            WordModel = new Lx.FiniteStateAutomoton<Lx.Grapheme>();
 
             var arguments = new WordModelArguments()
             {
@@ -174,7 +228,7 @@ namespace LingFiddler
 
         private struct WordModelArguments
         {
-            public Lx.FiniteStateAutomoton<char> Model;
+            public Lx.FiniteStateAutomoton<Lx.Grapheme> Model;
             public Lx.Lexicon Lexicon;
             public int NgramLength;
         }
@@ -188,10 +242,16 @@ namespace LingFiddler
 
             foreach (var lex in arguments.Lexicon.Keys)
             {
-                arguments.Model.Parse(lex.Graph.ToCharArray(), arguments.NgramLength);
+                var graphemeChain = lex.GraphemeChain.FirstOrDefault();
+
+                if (graphemeChain != null)
+                {
+                    arguments.Model.Parse(graphemeChain.ToArray(), arguments.NgramLength);
+                }
 
                 string state = lex.Graph;
                 worker.ReportProgress(++progress, state);
+
             }
         }
 
@@ -204,6 +264,13 @@ namespace LingFiddler
 
                 MainWindow.Instance.GenerateWords.IsEnabled = true;
                 MainWindow.Instance.UpdateNgramGrid(MainWindow.Instance.CurrentLanguage.WordModel);
+
+                //--
+                //if (MainWindow.Instance.console)
+                //{
+                //    MainWindow.Instance.UpdateConsole();                    
+                //}
+                //--
             }
             else if (e.Cancelled)
             {
@@ -263,13 +330,16 @@ namespace LingFiddler
             var arguments = (TextModelArguments)e.Argument;
             int progress = 0;
 
-            foreach(var exp in arguments.Text)
+            foreach(var paragraph in arguments.Text.Discourse)
             {
-                var morphArray = exp.Select(m => m.Graph).ToArray();
-                arguments.Model.Parse(morphArray, arguments.ChainLength);
-            
-                string state = exp.Graph;
-                worker.ReportProgress(++progress, state);
+                foreach (var exp in paragraph.Expressions)
+                {
+                    var morphArray = exp.Sequence.Select(m => m.Graph).ToArray();
+                    arguments.Model.Parse(morphArray, arguments.ChainLength);
+
+                    string state = exp.Graph;
+                    worker.ReportProgress(++progress, state);
+                }
             }
         }
 
@@ -314,22 +384,18 @@ namespace LingFiddler
             if (GeneratedLexicon == null)
                 GeneratedLexicon = new Lx.Lexicon();
 
-            if (WordModel == null)
+            if (WordModel == null)// || !WordModel.Transitions.Any(t => t.Chain.Contains(Lx.Node<char>.Start)))
             {
                 // Word model hasn't been built yet
-                return;
-            }
-
-            if (WordModel.Start.Transitions.Count == 0)
-            {
                 // Word Model has no transitions from Start state.
                 return;
             }
 
             var worker = new BackgroundWorker();
             worker.DoWork += GenerateWord_DoWork;
-            //worker.ProgressChanged += MainWindow.Instance.UpdateProgressBar;
             worker.RunWorkerCompleted += GenerateWord_WorkCompleted;
+
+            //worker.ProgressChanged += MainWindow.Instance.UpdateProgressBar;
             //worker.WorkerReportsProgress = true;
 
             worker.RunWorkerAsync(number);
@@ -347,7 +413,14 @@ namespace LingFiddler
             {
                 var word = WordModel.GenerateRandomChain(random);
 
-                GeneratedLexicon.Add(new string(word.ToArray()));
+                var wordString = new StringBuilder();
+
+                foreach (var grapheme in word)
+                {
+                    wordString.Append(grapheme.Graph);
+                }
+
+                GeneratedLexicon.Add(wordString.ToString());
             }
         }
 
@@ -355,6 +428,7 @@ namespace LingFiddler
         {
             if (!e.Cancelled && e.Error == null)
             {
+                MainWindow.Instance.UpdateGeneratedWordGrid();
             }
             else if (e.Cancelled)
             {
@@ -373,11 +447,14 @@ namespace LingFiddler
 
             var random = new Random();
 
+            var paragraph = new Lx.Discourse();
+            GeneratedText.AddLast(paragraph);
+
             for (int l = 0; l < number; l++)
             {
                 var words = TextModel.GenerateRandomChain(random);
                 var line = new Lx.Expression(string.Join(" ", words));
-                GeneratedText.Add(line);
+                paragraph.AddLast(line);
             }
         }
 

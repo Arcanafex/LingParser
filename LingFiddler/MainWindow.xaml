@@ -9,11 +9,19 @@
 
     <DockPanel>
         <DockPanel DockPanel.Dock="Right" Margin="0,0,0,10">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10, 10, 10, 0" Height="25">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10, 10, 10, 0" Height="25" HorizontalAlignment="Stretch">
+                <ComboBox Name="GridModeSelector" HorizontalAlignment="Stretch" MinWidth="160" SelectionChanged="SelectedMode_Changed">
+                    <ComboBoxItem Name="ShowWords" Content="Words" />
+                    <ComboBoxItem Name="ShowGlyphs" Content="Glyphs" />
+                    <ComboBoxItem Name="ShowNgrams" Content="Ngrams" />
+                    <ComboBoxItem Name="ShowCreateWords" Content="Generated Words" />
+                </ComboBox>
+            </StackPanel>
+            <!--<StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10, 10, 10, 0" Height="25">
                 <Button x:Name="ShowWords" Content="Words" Width="80" Click="ShowWords_Click"/>
                 <Button x:Name="ShowNgrams" Content="Ngrams"  Width="80" Margin="5, 0" Click="ShowNgrams_Click"/>
                 <Button x:Name="ShowCreateWords" Content="Generated" DockPanel.Dock="Right" HorizontalAlignment="Right" Width="80" Click="ShowCreatedWords_Click"/>
-            </StackPanel>
+            </StackPanel>-->
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Margin="10">
                 <!--<Button x:Name="Delete" Content="Delete" Width="80" Click="Delete_Click"/>
                 <Button x:Name="SaveWords" Content="Save"  Width="80"  Margin="5, 0" Click="SaveWords_Click"/>
@@ -43,13 +51,30 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </ScrollViewer>
-                <DataGrid Name="WordGrid" SelectionMode="Extended" AutoGenerateColumns="False" />
+                <DataGrid Name="TransitionGrid"  Visibility="Collapsed" SelectionMode="Extended" AutoGenerateColumns="False" HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Segment" Binding="{Binding Coda}"/>
+                        <DataGridTextColumn Width="60" Header="Weight" Binding="{Binding Weight}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Name="WordGrid" SelectionMode="Extended" AutoGenerateColumns="False" HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Morpheme" Binding="{Binding Graph}"/>
+                        <DataGridTextColumn Width="60" Header="Length" Binding="{Binding Length}"/>
+                        <DataGridTextColumn Width="60" Header="Freq" Binding="{Binding Frequency}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             </DockPanel>
         </DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10, 10, 10, 0" Height="25">
-            <Button Content="Text" Width="80" Click="ShowText_Click"/>
+            <ComboBox Name="TextModeSelector" Width="160" SelectionChanged="SelectedMode_Changed">
+                <ComboBoxItem Name="ShowText" Content="Text"/>
+                <ComboBoxItem Name="ShowLines" Content="Lines"/>
+                <ComboBoxItem Name="ShowGeneratedText" Content="Generated"/>
+            </ComboBox>
+            <!--<Button Content="Text" Width="80" Click="ShowText_Click"/>
             <Button Content="Lines" Width="80" Margin="5, 0" Click="ShowLines_Click"/>
-            <Button Content="Generated" Width="80" Click="ShowGeneratedLines_Click"/>
+            <Button Content="Generated" Width="80" Click="ShowGeneratedLines_Click"/>-->
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom">
             <DockPanel Margin="10, 0, 10, 5">
@@ -94,6 +119,10 @@
                         <Label Content="Punctuation Pattern" Width="120"/>
                         <TextBox Name="PatternPunctuation" Text="" Width="200" VerticalAlignment="Center" TextChanged="CurrentPuncuationPattern_Updated"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Paragraph Pattern" Width="120"/>
+                        <TextBox Name="PatternParagraph" Text="" Width="200" VerticalAlignment="Center" TextChanged="CurrentParagraphPattern_Updated"/>
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
             <StackPanel Margin="10, 5" Orientation="Horizontal">
@@ -118,6 +147,19 @@
                 <!--<TextBox Name="PathBox" Margin="0, 2" Height="25" Text="Path" VerticalContentAlignment="Center"/>-->
             </DockPanel>
         </StackPanel>
+        <!--<StackPanel Background="PowderBlue">
+
+            <Glyphs
+                FontUri             = "C:\WINDOWS\Fonts\ARIAL.TTF"
+                FontRenderingEmSize = "50"
+                StyleSimulations    = "BoldSimulation"
+                UnicodeString       = "Hello World!"
+                Fill                = "Black"
+                OriginX             = "100"
+                OriginY             = "200"
+                />
+
+        </StackPanel>-->
         <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentText_Updated" AcceptsReturn="True" AcceptsTab="True"/>
     </DockPanel>
 </Window>

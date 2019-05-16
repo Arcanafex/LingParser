@@ -29,15 +29,36 @@ namespace LingFiddler
         #region local Variables
         internal string CurrentText { get; set; }
         internal HashSet<char> CurrentCharSet { get; set; }
+        internal string ConsoleText { get; set; }
 
         internal int sizeNgram;
         internal int numberGenerateWords;
         internal int sizeMarkovChain;
         internal int numberGenerateLines;
 
+        internal string patternParagraph;
         internal string patternLine;
         internal string patternWord;
         internal string patternPunctuation;
+
+        //public int CountChar
+        //{
+        //    get { return CurrentText.Length; }
+        //}
+
+        //public int CountCharUnique
+        //{
+        //    get { return CurrentCharSet.Count; }
+        //}
+        //public int CountWord { get; private set; }
+        //public int CountWordUnique
+        //{
+        //    get
+        //    {
+        //        return CurrentLanguage.Lexicon.UniqueWordCount;
+        //    }
+        //}
+        //public int CountLine { get; private set; }
 
         public string CountChar
         {
@@ -63,6 +84,7 @@ namespace LingFiddler
             }
         }
 
+
         internal int countLine = 0;
         public string CountLine
         {
@@ -75,13 +97,14 @@ namespace LingFiddler
             get { return countParagraph.ToString(); }
         }
 
+
         #endregion
 
         #region DataGrid Views
         internal enum ViewMode { Text, Lines, Generated }
         internal ViewMode currentViewMode = ViewMode.Text;
 
-        internal enum GridMode { Words, Ngrams, Generated }
+        internal enum GridMode { Words, Ngrams, Generated, Script, Orthography }
         internal GridMode currentGridMode = GridMode.Words;
 
         internal void ChangeMode(ViewMode mode)
@@ -95,13 +118,23 @@ namespace LingFiddler
             GridMode lastMode = currentGridMode;
             currentGridMode = mode;
 
-            if (currentGridMode == GridMode.Ngrams)
+            switch (mode)
             {
-                NodeList.Visibility = Visibility.Visible;
-            }
-            else if (lastMode == GridMode.Ngrams)
-            {
-                NodeList.Visibility = Visibility.Collapsed;
+                case GridMode.Ngrams:
+                    NodeList.Visibility = Visibility.Visible;
+                    TransitionGrid.Visibility = Visibility.Visible;
+                    WordGrid.Visibility = Visibility.Collapsed;
+                    break;
+                case GridMode.Script:
+                    NodeList.Visibility = Visibility.Visible;
+                    TransitionGrid.Visibility = Visibility.Collapsed;
+                    WordGrid.Visibility = Visibility.Collapsed;
+                    break;
+                default:
+                    NodeList.Visibility = Visibility.Collapsed;
+                    TransitionGrid.Visibility = Visibility.Collapsed;
+                    WordGrid.Visibility = Visibility.Visible;
+                    break;
             }
 
         }
@@ -232,98 +265,75 @@ namespace LingFiddler
             }
         }
 
-        public List<Lx.Morpheme> ViewListGeneratedWord
-        {
-            get
-            {
-                return CurrentLanguage.GeneratedLexicon != null ? CurrentLanguage.GeneratedLexicon.Keys.ToList() : null;
-            }
-        }
-
-        public List<Lx.Morpheme> SelectedWords { get; set; }
-
         public class NgramView : ObservableCollection<NgramView.NgramViewItem>
         {
-            public readonly Lx.FiniteStateAutomoton<char> StateMachine;
+            public readonly Lx.FiniteStateAutomoton<Lx.Grapheme> StateMachine;
 
-            private NgramView (Lx.FiniteStateAutomoton<char> stateMachine)
+            internal NgramView(Lx.FiniteStateAutomoton<Lx.Grapheme> stateMachine)
             {
+                if (stateMachine == null)
+                    return;
+
                 StateMachine = stateMachine;
 
-                AddNgramViewItem(StateMachine.Start);
-
-                foreach (var state in stateMachine.States.OrderBy(s => new string(s.Value)))
+                foreach (var item in StateMachine.Transitions.OrderBy(t => t.Key.ToString()))
                 {
-                    AddNgramViewItem(state);
+                    var viewItem = AddNgramViewItem(item.Key);
+
+                    foreach (var transition in item.Value.OrderBy(t => t.Key.ToString()))
+                    {
+                        viewItem.AddTransitionViewItem(transition.Value);
+                    }
                 }
             }
 
-            public static NgramView GetNgramView(Lx.FiniteStateAutomoton<char> stateMachine)
+            public static NgramView GetNgramView(Lx.FiniteStateAutomoton<Lx.Grapheme> stateMachine)
             {
                 var view = new NgramView(stateMachine);
                 return view;
             }
 
-            public void AddNgramViewItem(Lx.Node<char> state)
+            public NgramViewItem AddNgramViewItem(Lx.NodeChain<Lx.Grapheme> state)
             {
-                Add(new NgramViewItem(this, state));
+                var item = new NgramViewItem(this, state);
+                Add(item);
+                return item;
             }
 
             public class NgramViewItem
             {
-                //public readonly Lx.FiniteStateAutomoton<char> StateMachine;
-                public readonly Lx.Node<char> State;
+                public readonly Lx.NodeChain<Lx.Grapheme> StateChain;
                 public readonly NgramView ParentView;
 
-                public List<TransitionViewItem> TransitionView;
+                public ObservableCollection<TransitionViewItem> TransitionView;
 
                 public string Value
                 {
                     get
                     {
-                        switch (State.Type)
-                        {
-                            case Lx.NodeType.Start:
-                                return "[START]";
-                            case Lx.NodeType.Value:
-                                return new string(State.Value);
-                            case Lx.NodeType.End:
-                                return "[END]";
-                            default:
-                                return string.Empty;
-                        }
+                        return StateChain.ToString();
                     }
-                    //set
-                    //{
-                    //    State.UpdateValue(value.ToCharArray());
-                    //}
                 }
 
-                internal NgramViewItem(NgramView parentView, Lx.Node<char> state)
+                internal NgramViewItem(NgramView parentView, Lx.NodeChain<Lx.Grapheme> stateChain)
                 {
                     ParentView = parentView;
-                    State = state;
+                    StateChain = stateChain;
 
-                    TransitionView = new List<TransitionViewItem>();
-
-                    foreach(var transition in State.Transitions.OrderBy(t => new string(t.Key.Value)))
-                    {
-                        AddTransitionViewItem(transition.Key, transition.Value);
-                    }
+                    TransitionView = new ObservableCollection<TransitionViewItem>();
                 }
 
-                internal void AddTransitionViewItem(Lx.Node<char> state, int weight)
+                internal void AddTransitionViewItem(Lx.Transition<Lx.Grapheme> transition)
                 {
-                    TransitionView.Add(new TransitionViewItem(this, state, weight));
+                    TransitionView.Add(new TransitionViewItem(this, transition));
                 }
             }
 
             public class TransitionViewItem
             {
                 public readonly NgramViewItem OriginState;
-                public readonly Lx.Node<char> State;
+                public readonly Lx.Transition<Lx.Grapheme> Transition;
 
-                private readonly int codaIndex;
                 private string coda;
                 public string Coda
                 {
@@ -333,10 +343,36 @@ namespace LingFiddler
                     }
                     set
                     {
-                        coda = value;
+                        var updatedValue = value;
 
-                        string updatedValue = new string(State.Value).Substring(0, codaIndex) + coda;
-                        State.UpdateValue(updatedValue.ToCharArray());
+                        if (updatedValue.Length > 0)
+                        {
+                            // TODO: get Glyphs first
+                            CurrentLanguage.Script.
+
+                            var segment = new Lx.Grapheme(updatedValue);
+
+                            if (Transition.EndState.Value.Graph != segment.Graph)
+                            {
+                                var model = Transition.ParentModel;
+                                var node = model.AddNode(segment);
+
+                                if (model.Transitions[Transition.Chain].ContainsKey(node))
+                                {
+                                    model.Transitions[Transition.Chain][node].MergeTransition(Transition);
+                                    OriginState.TransitionView.Remove(this);
+                                    CollectionViewSource.GetDefaultView(MainWindow.Instance.WordGrid.ItemsSource).Refresh();
+                                }
+                                else
+                                {
+                                    model.Transitions[Transition.Chain].Remove(Transition.EndState);
+                                    Transition.EndState = node;
+                                    model.Transitions[Transition.Chain].Add(node, Transition);
+                                    coda = Transition.EndState.ToString();
+                                    MainWindow.Instance.UpdateNgramGrid(Transition.ParentModel);
+                                }                                
+                            }
+                        }
                     }
                 }
 
@@ -344,38 +380,64 @@ namespace LingFiddler
                 {
                     get
                     {
-                        return OriginState.State.Transitions[State];
+                        return Transition.Weight;
                     }
                     set
                     {
-                        OriginState.State.Transitions[State] = value;
+                        Transition.Weight = value;
                     }
                 }
 
-                internal TransitionViewItem(NgramViewItem originState, Lx.Node<char> endState, int weight)
+                internal TransitionViewItem(NgramViewItem originState, Lx.Transition<Lx.Grapheme> transition)
                 {
-                    OriginState = originState;
-                    State = endState;
+                    OriginState = originState;                    
+                    Transition = transition;
 
-                    switch (endState.Type)
+                    switch (transition.EndState.Type)
                     {
                         case Lx.NodeType.Start:
-                            codaIndex = 0;
                             coda = "[START]";
                             break;
 
                         case Lx.NodeType.Value:
-                            codaIndex = State.Value.Overlap(originState.State.Value);
-                            Coda = new string(State.Value.Slice(codaIndex));
+                            coda = transition.EndState.Value.ToString();
                             break;
 
                         case Lx.NodeType.End:
-                            codaIndex = 0;
                             coda = "[END]";
                             break;
                     }
                 }
             }
+        }
+
+        public class ScriptView : ObservableCollection<ScriptView.ScriptViewItem>
+        {
+            public static ScriptView GetScriptView(Lx.Script script)
+            {
+                var view = new ScriptView(script);
+                return view;
+            }
+
+            internal ScriptView (Lx.Script script)
+            {
+
+            }
+
+            public class ScriptViewItem
+            {
+                public ScriptView ParentView { get; set; }
+                public Lx.Glyph Glyph { get; set; }
+                public string Value
+                {
+                    get;
+                }
+            }
+        }
+
+        public class OrthographyView
+        {
+
         }
 
         #endregion
@@ -399,9 +461,10 @@ namespace LingFiddler
             sizeMarkovChain = 2;
             numberGenerateLines = 5;
 
-            patternLine = @".+?[\.\?\!]+";
+            patternParagraph = @".+?\r?\n\r?\n";
+            patternLine = @".+?([\.\?\!]+|$)";
             patternWord = @"[^\W0-9_]+";
-            patternPunctuation = @"[',.:;]+";
+            patternPunctuation = @"\s?[',.:;]+\s?";
 
             //--
 
@@ -410,6 +473,7 @@ namespace LingFiddler
             SizeMarkovChain.Text = sizeMarkovChain.ToString();
             SizeGenerateLines.Text = numberGenerateLines.ToString();
 
+            PatternParagraph.Text = patternParagraph;
             PatternLine.Text = patternLine;
             PatternWord.Text = patternWord;
             PatternPunctuation.Text = patternPunctuation;
@@ -418,6 +482,8 @@ namespace LingFiddler
             GenerateWords.IsEnabled = false;
             ParseTextModel.IsEnabled = false;
             GenerateLines.IsEnabled = false;
+
+            ShowText.IsSelected = true;
         }
 
         private void LoadText_Click(object sender, RoutedEventArgs e)
@@ -426,8 +492,9 @@ namespace LingFiddler
 
             if (openDialog.ShowDialog() == true)
             {
-                string loadedText = File.ReadAllText(openDialog.FileName, Encoding.UTF8);
-                UpdateTextView(loadedText, ViewMode.Text);
+                CurrentLanguage.LoadText(openDialog.FileName);
+                //string loadedText = File.ReadAllText(openDialog.FileName, Encoding.UTF8);
+                //UpdateTextView(loadedText, ViewMode.Text);
             }            
         }
 
@@ -531,6 +598,17 @@ namespace LingFiddler
             }
         }
 
+        private void CurrentParagraphPattern_Updated(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                CurrentLanguage.ParagraphPattern = new Regex(PatternParagraph.Text, RegexOptions.Singleline);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
         private void SizeNgram_Updated(object sender, TextChangedEventArgs e)
         {
             int n = sizeNgram;
@@ -544,8 +622,6 @@ namespace LingFiddler
             {
                 sizeNgram = n;
             }
-
-            //CurrentLanguage.sizeNgram = sizeNgram;
         }
 
         private void SizeMarkovChain_Updated(object sender, TextChangedEventArgs e)
@@ -561,8 +637,6 @@ namespace LingFiddler
             {
                 sizeMarkovChain = n;
             }
-
-            //CurrentLanguage.sizeMarkovChain = sizeMarkovChain;
         }
 
         private void NumberGenerateWords_Updated(object sender, TextChangedEventArgs e)
@@ -578,8 +652,6 @@ namespace LingFiddler
             {
                 numberGenerateWords = n;
             }
-
-            //CurrentLanguage.numberGenerateWords = numberGenerateWords;
         }
 
         private void NumberGenerateLines_Updated(object sender, TextChangedEventArgs e)
@@ -595,8 +667,6 @@ namespace LingFiddler
             {
                 numberGenerateLines = n;               
             }
-
-            //CurrentLanguage.numberGenerateLines = numberGenerateLines;
         }
 
         #endregion
@@ -607,17 +677,37 @@ namespace LingFiddler
             BackgroundProgress.Value = e.ProgressPercentage;
             BackgroundStatus.Text = e.UserState.ToString();
         }
+
+        internal bool console = false;
+        internal void UpdateConsole()
+        {
+            var builder = new StringBuilder();
+
+            foreach (var item in CurrentLanguage.WordModel.Transitions.OrderBy(t => t.Key.ToString()))
+            {
+                float total = item.Value.Values.Sum(t => t.Weight);
+                builder.AppendLine($"{item.Key.ToString("-"), -20} : {100,-10}");
+
+                foreach (var transition in item.Value.OrderBy(t => t.Key.ToString()))
+                {
+                    builder.AppendLine($"{"",-10} -{transition.Key.ToString(),-10} {(transition.Value.Weight / total) * 100,10:F2}%");
+                }
+            }
+
+            ConsoleText = builder.ToString();
+            UpdateTextView(ConsoleText, ViewMode.Generated);
+        }
         #endregion
 
         #region Update Text Box
 
-        private void UpdateTextView(string text, ViewMode mode)
+        internal void UpdateTextView(string text, ViewMode mode)
         {
             currentViewMode = mode;
             TextBlock.Text = text;
         }
 
-        private void UpdateWordCount()
+        internal void UpdateWordCount()
         {
             countWord = CurrentLanguage.WordPattern.Matches(CurrentText).Count;
             countLine = CurrentLanguage.LinePattern.Matches(CurrentText).Count;
@@ -635,118 +725,26 @@ namespace LingFiddler
         internal void UpdateWordGrid()
         {
             ChangeMode(GridMode.Words);
-            //currentGridMode = GridMode.Words;
-            WordGrid.ItemsSource = null;
-            WordGrid.Columns.Clear();
 
-            DataGridTextColumn wordColumn = new DataGridTextColumn()
-            {
-                Header = "Graph",
-                Binding = new Binding("Graph"),
-                Width = 120
-            };
-
-            DataGridTextColumn lengthColumn = new DataGridTextColumn()
-            {
-                Header = "Length",
-                Binding = new Binding("Length"),
-                Width = 50
-            };
-
-            DataGridTextColumn freqColumn = new DataGridTextColumn()
-            {
-                Header = "Frequency",
-                Binding = new Binding("Frequency"),
-                Width = 50
-
-            };
-
-            WordGrid.Columns.Add(wordColumn);
-            WordGrid.Columns.Add(lengthColumn);
-            WordGrid.Columns.Add(freqColumn);
-
-            var morphemeView = MorphemeView.GetMorphemeView(CurrentLanguage.Lexicon);            
+            var morphemeView = MorphemeView.GetMorphemeView(CurrentLanguage.Lexicon);   
             WordGrid.ItemsSource = morphemeView;
         }
 
-        internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<char> source)
+        internal void UpdateNgramGrid(Lx.FiniteStateAutomoton<Lx.Grapheme> source)
         {
             ChangeMode(GridMode.Ngrams);
 
-            NodeList.ItemsSource = null;
-            //NodeList.Items.Clear();
-
-            WordGrid.ItemsSource = null;
-            WordGrid.Columns.Clear();
-
-            DataGridTextColumn codaColumn = new DataGridTextColumn()
-            {
-                Header = "Coda",
-                Binding = new Binding("Coda"),
-                Width = 80                
-            };
-
-            DataGridTextColumn weightColumn = new DataGridTextColumn()
-            {
-                Header = "Weight",
-                Binding = new Binding("Weight"),
-                Width = 50
-            };
-
-            WordGrid.Columns.Add(codaColumn);
-            WordGrid.Columns.Add(weightColumn);
-
-            var view = NgramView.GetNgramView(CurrentLanguage.WordModel);
+            var view = NgramView.GetNgramView(source);
             NodeList.ItemsSource = view;
-
-            if (view.Count > 0)
-                NodeList.SelectedIndex = 0;
         }
 
         internal void UpdateGeneratedWordGrid()
         {
             ChangeMode(GridMode.Generated);
-            //currentGridMode = GridMode.Generated;
-            WordGrid.ItemsSource = null;
-            WordGrid.Columns.Clear();
 
-            DataGridTextColumn wordColumn = new DataGridTextColumn()
-            {
-                Header = "Graph",
-                Binding = new Binding("Graph"),
-                Width = 250
-            };
-
-            WordGrid.Columns.Add(wordColumn);
+            var ViewListGeneratedWord = MorphemeView.GetMorphemeView(CurrentLanguage.GeneratedLexicon);
             WordGrid.ItemsSource = ViewListGeneratedWord;
         }
-
-        private void WordGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (SelectedWords == null)
-                SelectedWords = new List<Lx.Morpheme>();
-
-            foreach (MorphemeView.MorphemeViewItem m in e.RemovedItems)
-            {
-                SelectedWords.Remove(m.Morpheme);
-            }
-
-            foreach (MorphemeView.MorphemeViewItem m in e.AddedItems)
-            {
-                SelectedWords.Add(m.Morpheme);
-            }
-        }
-
-        //private void Delete_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (SelectedWords == null)
-        //        SelectedWords = new List<Lx.Morpheme>();
-
-        //    SelectedWords.ForEach(w => CurrentLanguage.Lexicon.Remove(w));
-        //    SelectedWords.Clear();
-
-        //    UpdateWordGrid();
-        //}
 
         #endregion
 
@@ -759,34 +757,82 @@ namespace LingFiddler
 
         #region Show
 
-        private void ShowLines_Click(object sender, RoutedEventArgs e)
+        //private void ShowLines_Click(object sender, RoutedEventArgs e)
+        //{
+        //    UpdateTextView(CurrentLanguage.Text.ToString(), ViewMode.Lines);
+        //}
+
+        //private void ShowText_Click(object sender, RoutedEventArgs e)
+        //{
+        //    UpdateTextView(CurrentText, ViewMode.Text);
+        //}
+
+        //private void ShowGeneratedLines_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (CurrentLanguage.GeneratedText == null)
+        //        CurrentLanguage.GeneratedText = new Lx.Text();
+
+        //    UpdateTextView(CurrentLanguage.GeneratedText.ToString(), ViewMode.Generated);
+        //}
+
+        //private void ShowWords_Click(object sender, RoutedEventArgs e)
+        //{
+        //    UpdateWordGrid();
+        //}
+
+        //private void ShowNgrams_Click(object sender, RoutedEventArgs e)
+        //{
+        //    UpdateNgramGrid(CurrentLanguage.WordModel);
+        //}
+
+        //private void ShowCreatedWords_Click(object sender, RoutedEventArgs e)
+        //{
+        //    UpdateGeneratedWordGrid();
+        //}
+
+
+        private void SelectedNgram_Changed(object sender, SelectionChangedEventArgs e)
         {
-            UpdateTextView(CurrentLanguage.Text.ToString(), ViewMode.Lines);
+            foreach (NgramView.NgramViewItem selectedItem in e.AddedItems)
+            {
+                TransitionGrid.ItemsSource = selectedItem.TransitionView;
+            }
         }
 
-        private void ShowText_Click(object sender, RoutedEventArgs e)
+        private void SelectedMode_Changed(object sender, SelectionChangedEventArgs e)
         {
-            UpdateTextView(CurrentText, ViewMode.Text);
-        }
+            foreach (ComboBoxItem item in e.AddedItems)
+            {
+                switch (item.Name)
+                {
+                    case "ShowWords":
+                        UpdateWordGrid();
+                        break;
+                    case "ShowNgrams":
+                        UpdateNgramGrid(CurrentLanguage.WordModel);
+                        break;
+                    case "ShowCreatedWords":
+                        UpdateGeneratedWordGrid();
+                        break;
+                    case "ShowGlyphs":
+                        ChangeMode(GridMode.Script);
+                        break;
+                    case "ShowText":
+                        UpdateTextView(CurrentText, ViewMode.Text);
+                        break;
+                    case "ShowLines":
+                        UpdateTextView(CurrentLanguage.Text.ToString(), ViewMode.Lines);
+                        break;
+                    case "ShowGeneratedText":
+                        if (CurrentLanguage.GeneratedText == null)
+                            CurrentLanguage.GeneratedText = new Lx.Text();
 
-        private void ShowGeneratedLines_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateTextView(CurrentLanguage.GeneratedText.ToString(), ViewMode.Generated);
-        }
-
-        private void ShowWords_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateWordGrid();
-        }
-
-        private void ShowNgrams_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateNgramGrid(CurrentLanguage.WordModel);//, ViewListNgram);
-        }
-
-        private void ShowCreatedWords_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateGeneratedWordGrid();
+                        UpdateTextView(CurrentLanguage.GeneratedText.ToString(), ViewMode.Generated);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         #endregion
@@ -801,7 +847,6 @@ namespace LingFiddler
         private void ParseNgrams_Click(object sender, RoutedEventArgs e)
         {
             CurrentLanguage.ConstructWordModel(sizeNgram);
-            //UpdateNgramGrid(CurrentLanguage.WordModel);
         }
 
         private void ParseLines_Click(object sender, RoutedEventArgs e)
@@ -822,13 +867,12 @@ namespace LingFiddler
         private void GenerateWords_Click(object sender, RoutedEventArgs e)
         {
             CurrentLanguage.GenerateWords(numberGenerateWords);
-            UpdateGeneratedWordGrid();
         }
 
         private void ClearGeneratedWords_Click(object sender, RoutedEventArgs e)
         {
-            CurrentLanguage.ClearGeneratedLexicon();
             UpdateGeneratedWordGrid();
+            CurrentLanguage.ClearGeneratedLexicon();
         }
 
         private void ClearGeneratedText_Click(object sender, RoutedEventArgs e)
@@ -839,12 +883,5 @@ namespace LingFiddler
 
         #endregion
 
-        private void SelectedNgram_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            foreach (NgramView.NgramViewItem selectedItem in e.AddedItems)
-            {
-                WordGrid.ItemsSource = selectedItem.TransitionView;
-            }
-        }
     }
 }
