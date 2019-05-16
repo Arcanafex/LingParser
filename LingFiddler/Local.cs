@@ -124,7 +124,7 @@ namespace LingFiddler
                 string paragraphText = p.Value.Trim();
                 paragraphText = whiteSpacePattern.Replace(paragraphText, " ");
                 var paragraph = new Lx.Discourse();
-                Text.AddLast(paragraph);
+                Text.Discourse.AddLast(paragraph);
 
                 foreach (Match l in LinePattern.Matches(paragraphText))
                 {
@@ -134,7 +134,7 @@ namespace LingFiddler
                     state = cleanedLine;
 
                     var expression = new Lx.Expression(cleanedLine);
-                    paragraph.AddLast(expression);
+                    paragraph.Expressions.AddLast(expression);
 
                     foreach (Match m in expElementPattern.Matches(expression.Graph))
                     {
@@ -152,11 +152,11 @@ namespace LingFiddler
                             {
                                 var morph = Text.Lexicon.Add(m.Groups[2].Value);
                                 morph.GraphemeChain.Add(Lx.SegmentChain<Lx.Grapheme>.NewSegmentChain(graphemes));
-                                expression.AddLast(morph);
+                                expression.Sequence.AddLast(morph);
                             }
                             else
                             {
-                                expression.AddLast(Text.Paralexicon.Add(m.Groups[1].Value));
+                                expression.Sequence.AddLast(Text.Paralexicon.Add(m.Groups[1].Value));
                             }
 
 
@@ -448,13 +448,13 @@ namespace LingFiddler
             var random = new Random();
 
             var paragraph = new Lx.Discourse();
-            GeneratedText.AddLast(paragraph);
+            GeneratedText.Discourse.AddLast(paragraph);
 
             for (int l = 0; l < number; l++)
             {
                 var words = TextModel.GenerateRandomChain(random);
                 var line = new Lx.Expression(string.Join(" ", words));
-                paragraph.AddLast(line);
+                paragraph.Expressions.AddLast(line);
             }
         }
 

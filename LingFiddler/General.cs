@@ -38,7 +38,6 @@ namespace Lx
 
     public class SegmentChain<T> : LinkedList<T> where T : Segment
     {
-
         public static SegmentChain<T> NewSegmentChain(List<T> segmentList)
         {
             var chain = new SegmentChain<T>();
@@ -121,10 +120,10 @@ namespace Lx
             return Composition;
         }
 
-        public SegmentChain<Glyph> GetComposition()
-        {
-            return Composition;
-        }
+        //public SegmentChain<Glyph> GetComposition()
+        //{
+        //    return Composition;
+        //}
     }
 
     /// <summary>
@@ -1115,10 +1114,10 @@ namespace Lx
             return Composition;
         }
 
-        internal void AddLast(Morpheme morph)
-        {
-            throw new NotImplementedException();
-        }
+        //internal void AddLast(Morpheme morph)
+        //{
+        //    Sequence.AddLast(morph);
+        //}
 
         //public SegmentChain<Expression> GetComposition()
         //{
@@ -1152,10 +1151,10 @@ namespace Lx
             return string.Join("\n", Expressions.Select(exp => exp.Graph).ToArray());
         }
 
-        internal void AddLast(Expression expression)
-        {
-            throw new NotImplementedException();
-        }
+        //internal void AddLast(Expression expression)
+        //{
+        //    Expressions.AddLast(expression);
+        //}
     }
 
     public class Text : Segment
@@ -1198,10 +1197,10 @@ namespace Lx
             return text.ToString();
         }
 
-        internal void AddLast(Discourse paragraph)
-        {
-            throw new NotImplementedException();
-        }
+        //internal void AddLast(Discourse paragraph)
+        //{
+        //    Discourse.AddLast(paragraph);
+        //}
 
         internal void Clear()
         {

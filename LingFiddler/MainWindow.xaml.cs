@@ -345,34 +345,36 @@ namespace LingFiddler
                     {
                         var updatedValue = value;
 
-                        if (updatedValue.Length > 0)
-                        {
-                            // TODO: get Glyphs first
-                            CurrentLanguage.Script.
+                        //if (updatedValue.Length > 0)
+                        //{
+                        //    // TODO: 
+                        //    // 1. find glyphs in current script
+                        //    // 2. select matching maximal graphemes
 
-                            var segment = new Lx.Grapheme(updatedValue);
+                        //    var glyph = Instance.CurrentLanguage.Script.AddGlyph(updatedValue.ToCharArray().First());
+                        //    var segment = new Lx.Grapheme(glyph);
 
-                            if (Transition.EndState.Value.Graph != segment.Graph)
-                            {
-                                var model = Transition.ParentModel;
-                                var node = model.AddNode(segment);
+                        //    if (Transition.EndState.Value.Graph != segment.Graph)
+                        //    {
+                        //        var model = Transition.ParentModel;
+                        //        var node = model.AddNode(segment);
 
-                                if (model.Transitions[Transition.Chain].ContainsKey(node))
-                                {
-                                    model.Transitions[Transition.Chain][node].MergeTransition(Transition);
-                                    OriginState.TransitionView.Remove(this);
-                                    CollectionViewSource.GetDefaultView(MainWindow.Instance.WordGrid.ItemsSource).Refresh();
-                                }
-                                else
-                                {
-                                    model.Transitions[Transition.Chain].Remove(Transition.EndState);
-                                    Transition.EndState = node;
-                                    model.Transitions[Transition.Chain].Add(node, Transition);
-                                    coda = Transition.EndState.ToString();
-                                    MainWindow.Instance.UpdateNgramGrid(Transition.ParentModel);
-                                }                                
-                            }
-                        }
+                        //        if (model.Transitions[Transition.Chain].ContainsKey(node))
+                        //        {
+                        //            model.Transitions[Transition.Chain][node].MergeTransition(Transition);
+                        //            OriginState.TransitionView.Remove(this);
+                        //            CollectionViewSource.GetDefaultView(MainWindow.Instance.WordGrid.ItemsSource).Refresh();
+                        //        }
+                        //        else
+                        //        {
+                        //            model.Transitions[Transition.Chain].Remove(Transition.EndState);
+                        //            Transition.EndState = node;
+                        //            model.Transitions[Transition.Chain].Add(node, Transition);
+                        //            coda = Transition.EndState.ToString();
+                        //            MainWindow.Instance.UpdateNgramGrid(Transition.ParentModel);
+                        //        }                                
+                        //    }
+                        //}
                     }
                 }
 
