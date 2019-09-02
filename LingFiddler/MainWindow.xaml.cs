@@ -122,21 +122,53 @@ namespace LingFiddler
             {
                 case GridMode.Ngrams:
                     NodeList.Visibility = Visibility.Visible;
+                    GlyphList.Visibility = Visibility.Collapsed;
                     TransitionGrid.Visibility = Visibility.Visible;
                     WordGrid.Visibility = Visibility.Collapsed;
                     break;
                 case GridMode.Script:
-                    NodeList.Visibility = Visibility.Visible;
+                    NodeList.Visibility = Visibility.Collapsed;
+                    GlyphList.Visibility = Visibility.Visible;
+                    TransitionGrid.Visibility = Visibility.Collapsed;
+                    WordGrid.Visibility = Visibility.Collapsed;
+                    break;
+                case GridMode.Orthography:
+                    NodeList.Visibility = Visibility.Collapsed;
+                    GlyphList.Visibility = Visibility.Visible;
                     TransitionGrid.Visibility = Visibility.Collapsed;
                     WordGrid.Visibility = Visibility.Collapsed;
                     break;
                 default:
                     NodeList.Visibility = Visibility.Collapsed;
+                    GlyphList.Visibility = Visibility.Collapsed;
                     TransitionGrid.Visibility = Visibility.Collapsed;
                     WordGrid.Visibility = Visibility.Visible;
                     break;
             }
 
+        }
+
+        public class TextViewModel
+        {
+            public List<DiscourseViewItem> Paragraphs;
+        }
+
+        public class DiscourseViewItem
+        {
+            public List<ExpressionViewItem> Expressions { get; set; }
+            //public string Graph { get; set; }
+        }
+
+        public class ExpressionViewItem
+        {
+            public List<MorphViewItem> Morphemes { get; set; }
+            //public List<MorphemeView.MorphemeViewItem> Morphemes { get; set; }
+            //public string Graph { get; set; }
+        }
+
+        public class MorphViewItem
+        {
+            public string Graph { get; set; }
         }
 
         public class MorphemeView : ObservableCollection<MorphemeView.MorphemeViewItem>, IDisposable
@@ -262,6 +294,49 @@ namespace LingFiddler
             public void Dispose()
             {
                 this.CollectionChanged -= ItemUpdated;
+            }
+        }
+
+        internal TextViewModel TextModel;
+
+        internal void DoTheThing()
+        {
+            TextModel = new TextViewModel
+            {
+                Paragraphs = new List<DiscourseViewItem>()
+            };
+
+            foreach (var p in CurrentLanguage.Text.Discourse)
+            {
+                var paragraph = new DiscourseViewItem
+                {
+                    //Graph = p.ToString()
+                    Expressions = new List<ExpressionViewItem>()
+                };
+                TextModel.Paragraphs.Add(paragraph);
+
+                foreach (var e in p.Expressions)
+                {
+                    var expression = new ExpressionViewItem()
+                    {
+                        //Graph = e.ToString()
+                        //Morphemes = new List<MorphemeView.MorphemeViewItem>()
+                        Morphemes = new List<MorphViewItem>()
+                    };
+                    paragraph.Expressions.Add(expression);
+
+                    //var dummy = new MorphemeView();
+
+                    foreach (var m in e.Sequence)
+                    {
+                        //var morpheme = new MorphemeView.MorphemeViewItem(m, CurrentLanguage.Text.Lexicon, dummy);
+                        var morpheme = new MorphViewItem()
+                        {
+                            Graph = m.Graph
+                        };
+                        expression.Morphemes.Add(morpheme);
+                    }
+                }
             }
         }
 
@@ -819,11 +894,17 @@ namespace LingFiddler
                     case "ShowGlyphs":
                         ChangeMode(GridMode.Script);
                         break;
+                    case "ShowGraphemes":
+                        ChangeMode(GridMode.Orthography);
+                        break;
                     case "ShowText":
                         UpdateTextView(CurrentText, ViewMode.Text);
                         break;
                     case "ShowLines":
-                        UpdateTextView(CurrentLanguage.Text.ToString(), ViewMode.Lines);
+                        //UpdateTextView(CurrentLanguage.Text.ToString(), ViewMode.Lines);
+                        TextBlock.Visibility = Visibility.Collapsed;
+                        TextView.Visibility = Visibility.Visible;
+                        TextView.ItemsSource = TextModel.Paragraphs;
                         break;
                     case "ShowGeneratedText":
                         if (CurrentLanguage.GeneratedText == null)
@@ -885,5 +966,9 @@ namespace LingFiddler
 
         #endregion
 
+        private void SelectedGlyph_Changed(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }

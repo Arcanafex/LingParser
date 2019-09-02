@@ -11,8 +11,9 @@
         <DockPanel DockPanel.Dock="Right" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10, 10, 10, 0" Height="25" HorizontalAlignment="Stretch">
                 <ComboBox Name="GridModeSelector" HorizontalAlignment="Stretch" MinWidth="160" SelectionChanged="SelectedMode_Changed">
-                    <ComboBoxItem Name="ShowWords" Content="Words" />
-                    <ComboBoxItem Name="ShowGlyphs" Content="Glyphs" />
+                    <ComboBoxItem Name="ShowWords" Content="Lexicon" />
+                    <ComboBoxItem Name="ShowGlyphs" Content="Script" />
+                    <ComboBoxItem Name="ShowGraphemes" Content="Orthography" />
                     <ComboBoxItem Name="ShowNgrams" Content="Ngrams" />
                     <ComboBoxItem Name="ShowCreateWords" Content="Generated Words" />
                 </ComboBox>
@@ -51,19 +52,66 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </ScrollViewer>
+                <ScrollViewer FlowDirection="RightToLeft" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
+                    <ListBox Name="GlyphList" FlowDirection="LeftToRight" Width="60" Visibility="Visible" SelectionChanged="SelectedGlyph_Changed">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Symbol}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
                 <DataGrid Name="TransitionGrid"  Visibility="Collapsed" SelectionMode="Extended" AutoGenerateColumns="False" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Width="*" Header="Segment" Binding="{Binding Coda}"/>
                         <DataGridTextColumn Width="60" Header="Weight" Binding="{Binding Weight}"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <DataGrid Name="WordGrid" SelectionMode="Extended" AutoGenerateColumns="False" HeadersVisibility="Column">
+                <DataGrid Name="WordGrid" Visibility="Collapsed" SelectionMode="Extended" AutoGenerateColumns="False" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Width="*" Header="Morpheme" Binding="{Binding Graph}"/>
                         <DataGridTextColumn Width="60" Header="Length" Binding="{Binding Length}"/>
                         <DataGridTextColumn Width="60" Header="Freq" Binding="{Binding Frequency}"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                <StackPanel>
+                    <DockPanel>
+                        <Label Content="Symbol" DockPanel.Dock="Left"/>
+                        <TextBox Text="Stuff"/>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Height="300">
+                        <ScrollViewer FlowDirection="RightToLeft" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
+                            <ListBox Name="GraphemeGlyphList" FlowDirection="LeftToRight" Width="80" Visibility="Visible" AllowDrop="True">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Symbol}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
+                        <ScrollViewer FlowDirection="RightToLeft" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
+                            <ListBox Name="GraphemeComponentList" FlowDirection="LeftToRight" Width="80" Visibility="Visible" AllowDrop="True">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Symbol}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
+                    </StackPanel>
+                    <ListBox>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Symbol}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
             </DockPanel>
         </DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10, 10, 10, 0" Height="25">
@@ -147,7 +195,7 @@
                 <!--<TextBox Name="PathBox" Margin="0, 2" Height="25" Text="Path" VerticalContentAlignment="Center"/>-->
             </DockPanel>
         </StackPanel>
-        <!--<StackPanel Background="PowderBlue">
+        <StackPanel Background="PowderBlue" Visibility="Collapsed">
 
             <Glyphs
                 FontUri             = "C:\WINDOWS\Fonts\ARIAL.TTF"
@@ -159,7 +207,52 @@
                 OriginY             = "200"
                 />
 
-        </StackPanel>-->
-        <TextBox Name="TextBlock" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentText_Updated" AcceptsReturn="True" AcceptsTab="True"/>
+        </StackPanel>
+        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
+            <ItemsControl Name="TextView" Visibility="Collapsed" BorderBrush="Blue" BorderThickness="4" MinHeight="400" Padding="2" MaxWidth="400">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <!--<TextBlock Name="ExpressionViewItemList" Text="{Binding Graph}"/>-->
+                        <Border  BorderBrush="Red" BorderThickness="4" Padding="2" Margin="2" CornerRadius="4">
+                            <ItemsControl Name="ExpressionViewList" ItemsSource="{Binding Expressions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border  BorderBrush="Green" BorderThickness="4" Padding="2" Margin="2" CornerRadius="4">
+                                            <!--<TextBlock Name="MorphemeViewListItem" Text="{Binding Graph}"/>-->
+                                            <ItemsControl Name="MorphemeViewList" ItemsSource="{Binding Morphemes}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border BorderBrush="blue" BorderThickness="1" Padding="2" Margin="2" CornerRadius="4">
+                                                            <TextBlock Name="MorphemeViewItem" Text="{Binding Graph}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <TextBox Name="TextBlock" Visibility="Visible" Margin="10,10" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" LostFocus="MyTextBox_LostFocus" TextChanged="CurrentText_Updated" AcceptsReturn="True" AcceptsTab="True"/>
     </DockPanel>
 </Window>

@@ -147,7 +147,6 @@ namespace LingFiddler
                             var graphemes = Orthography.AddGraphemes(glyphs);
 
                             // List<Grapheme> => Morpheme
-
                             if (string.IsNullOrEmpty(m.Groups[1].Value))
                             {
                                 var morph = Text.Lexicon.Add(m.Groups[2].Value);
@@ -158,8 +157,6 @@ namespace LingFiddler
                             {
                                 expression.Sequence.AddLast(Text.Paralexicon.Add(m.Groups[1].Value));
                             }
-
-
                         }
                     }
 
@@ -181,6 +178,8 @@ namespace LingFiddler
 
                 MainWindow.Instance.ParseNgrams.IsEnabled = true;
                 MainWindow.Instance.ParseTextModel.IsEnabled = true;
+
+                MainWindow.Instance.DoTheThing();
             }
             else if (e.Cancelled)
             {

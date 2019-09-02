@@ -24,17 +24,18 @@ namespace Lx
 
     public abstract class Segment
     {
-        internal readonly Guid id;
+        internal readonly Guid id = new Guid();
         public string Name { get; set; }
         public string Graph { get; set; }
         public SegmentChain<Segment> Composition { get; set; }
-    }
 
-    //public interface ICompositeSegment<T> where T : Segment
-    //{
-    //    SegmentChain<T> SetComposition(List<T> componentSegments);
-    //    SegmentChain<T> GetComposition();
-    //}
+        public abstract void Initialize();
+
+        public virtual Guid GetID()
+        {
+            return id;
+        }
+    }
 
     public class SegmentChain<T> : LinkedList<T> where T : Segment
     {
@@ -50,14 +51,255 @@ namespace Lx
     }
 
     /// <summary>
+    /// One or more chars that together act as a single segmental unit of symbolic representation
+    /// </summary>
+    public class Glyph : Segment
+    {
+        public Script Script;
+        internal readonly string graph;
+        public new string Graph { get { return graph; } }
+        internal readonly char[] characters;
+        public char[] Characters { get { return characters; } }
+        public new SegmentChain<Glyph> Composition { get; set; }
+
+        public override void Initialize()
+        {
+            Composition = new SegmentChain<Glyph>();
+        }
+
+        public Glyph(string symbol)
+        {
+            Initialize();
+
+            graph = symbol;
+            characters = symbol.ToCharArray();
+        }
+
+        public Glyph(char[] symbols)
+        {
+            Initialize();
+
+            graph = new string(symbols);
+            characters = new char[symbols.Length];
+            symbols.CopyTo(Characters, 0);
+        }
+
+        public SegmentChain<Glyph> SetComposition(List<Glyph> componentSegments)
+        {
+            Composition = SegmentChain<Glyph>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
+
+        public static bool operator ==(Glyph left, Glyph right)
+        {
+            if (left is null)
+                return right is null;
+            else
+                return left.Equals(right);
+        }
+
+        public static bool operator !=(Glyph left, Glyph right)
+        {
+            return !(left.Equals(right));
+        }
+
+        public bool Equals(Glyph other)
+        {
+            if (other is null)
+                return false;
+            else
+                return this.Graph == other.Graph;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Glyph);
+        }
+
+        public override string ToString()
+        {
+            return new string(Characters);
+        }
+
+        public override int GetHashCode()
+        {
+            return Graph.GetHashCode();
+        }
+    }
+
+
+    public class GlyphChain : SegmentChain<Glyph>
+    {
+        public GlyphChain(List<Glyph> glyphs)
+        {
+            foreach (var g in glyphs)
+            {
+                AddLast(g);
+            }
+        }
+
+        public override string ToString()
+        {
+            var chain = new StringBuilder();
+
+            foreach(var g in this)
+            {
+                chain.Append(g.Characters);
+            }
+
+            return chain.ToString();
+        }
+
+        public static bool operator ==(GlyphChain left, GlyphChain right)
+        {
+            if (left is null)
+                return right is null;
+            else
+                return left.Equals(right);
+        }
+
+        public static bool operator !=(GlyphChain left, GlyphChain right)
+        {
+            return !(left.Equals(right));
+        }
+
+        public bool Equals(GlyphChain other)
+        {
+            if (other is null)
+                return false;
+            else
+                return this.ToString() == other.ToString();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as GlyphChain);
+        }
+
+        public override int GetHashCode()
+        {
+            return this.ToString().GetHashCode();
+        }
+    }
+
+    /// <summary>
+    /// A Grapheme is a language specific application of a specific glyph or arrangement of glyphs. 
+    /// </summary>
+    public class Grapheme : Segment
+    {
+        public List<GlyphChain> Glyphs { get; set; }
+        public new SegmentChain<Grapheme> Composition { get; set; }
+
+        public override void Initialize()
+        {
+            Glyphs = new List<GlyphChain>();
+            Composition = new SegmentChain<Grapheme>();
+        }
+
+        public Grapheme(Glyph glyph)
+        {
+            Initialize();
+
+            var glyphChain = new GlyphChain(new List<Glyph>() { glyph });
+            Glyphs.Add(glyphChain);
+            Graph = glyph.ToString();
+        }
+
+        public Grapheme(List<Glyph> glyphs)
+        {
+            Initialize();
+
+            var glyphChain = new GlyphChain(glyphs);
+            Glyphs.Add(glyphChain);
+            Graph = glyphChain.ToString();
+        }
+
+        public void AddGlyphChain(Glyph glyph)
+        {
+            var glyphChain = new GlyphChain(new List<Glyph>() { glyph });
+
+            if (Glyphs != null)
+            {
+                if (Glyphs.Count == 0)
+                    Graph = glyph.ToString();
+
+                if (!Glyphs.Contains(glyphChain))
+                    Glyphs.Add(glyphChain);
+            }
+        }
+
+        public void AddGlyphChain(List<Glyph> glyphs)
+        {
+            var glyphChain = new GlyphChain(glyphs);
+
+            if (Glyphs != null)
+            {
+                if (Glyphs.Count == 0)
+                    Graph = glyphChain.ToString();
+
+                if (!Glyphs.Contains(glyphChain))
+                    Glyphs.Add(glyphChain);
+            }
+        }
+
+        public override string ToString()
+        {
+            string graph = Graph;
+
+            if (Glyphs != null && Glyphs.Count > 0)
+                graph = Glyphs.First().ToString();
+
+            return graph;
+        }
+
+        public SegmentChain<Grapheme> SetComposition(List<Grapheme> componentSegments)
+        {
+            Composition = SegmentChain<Grapheme>.NewSegmentChain(componentSegments);
+            return Composition;
+        }
+
+        public static bool operator ==(Grapheme left, Grapheme right)
+        {
+            if (left is null)
+                return right is null;
+            else
+                return left.Equals(right);
+        }
+
+        public static bool operator !=(Grapheme left, Grapheme right)
+        {
+            return !(left.Equals(right));
+        }
+
+        public bool Equals(Grapheme other)
+        {
+            if (other is null)
+                return false;
+            else
+                return this.Graph == other.Graph;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Grapheme);
+        }
+
+        public override int GetHashCode()
+        {
+            return this.ToString().GetHashCode();
+        }
+    }
+
+
+    /// <summary>
     /// a set of Glyphs
     /// </summary>
-    public class Script : Dictionary<char, Glyph>
+    public class Script : Dictionary<string, Glyph>
     {
         public string Name { get; set; }
         // Ordering of the set of glyphs?
 
-        public Glyph AddGlyph(char glyph)
+        public Glyph AddGlyph(string glyph)
         {
             if (ContainsKey(glyph))
             {
@@ -71,7 +313,7 @@ namespace Lx
             }
         }
 
-        public List<Glyph> AddGlyphs(char[] glyphs)
+        public List<Glyph> AddGlyphs(string[] glyphs)
         {
             var glyphList = new List<Glyph>();
 
@@ -82,87 +324,17 @@ namespace Lx
 
             return glyphList;
         }
-    }
 
-    /// <summary>
-    /// One or more chars that together act as a single segmental unit making up a Grapheme
-    /// </summary>
-    public class Glyph : Segment//, ICompositeSegment<Glyph>
-    {
-        public Script Script;
-        public List<char> Characters { get; set; }
-        public new SegmentChain<Glyph> Composition { get; set; }
-
-        public Glyph(char symbol)
+        public List<Glyph> AddGlyphs(char[] glyphs)
         {
-            Characters = new List<char>
+            var glyphList = new List<Glyph>();
+
+            foreach (var glyph in glyphs)
             {
-                symbol
-            };
+                glyphList.Add(AddGlyph(glyph.ToString()));
+            }
 
-            Graph = symbol.ToString();
-        }
-
-        public Glyph(char[] symbols)
-        {
-            Characters = new List<char>(symbols);
-            Graph = new string(symbols);
-        }
-
-        public override string ToString()
-        {
-            return new string(Characters.ToArray());
-        }
-
-        public SegmentChain<Glyph> SetComposition(List<Glyph> componentSegments)
-        {
-            Composition = SegmentChain<Glyph>.NewSegmentChain(componentSegments);
-            return Composition;
-        }
-
-        //public SegmentChain<Glyph> GetComposition()
-        //{
-        //    return Composition;
-        //}
-    }
-
-    /// <summary>
-    /// A Grapheme is a language specific application of a specific glyph or arrangement of glyphs. 
-    /// </summary>
-    public class Grapheme : Segment//, ICompositeSegment<Grapheme>
-    {
-        public List<Glyph> Glyphs { get; set; }
-        public new SegmentChain<Grapheme> Composition { get; set; }
-
-        public Grapheme(Glyph glyph)
-        {
-            Glyphs = new List<Glyph>
-            {
-                glyph
-            };
-
-            Graph = new string (glyph.Graph.ToArray());
-        }
-
-        public override string ToString()
-        {
-            string graph = Graph;
-
-            if (Glyphs != null && Glyphs.Count > 0 && Glyphs.First() != null)
-                graph = Glyphs.First().ToString();
-
-            return graph;
-        }
-
-        public SegmentChain<Grapheme> SetComposition(List<Grapheme> componentSegments)
-        {
-            Composition = SegmentChain<Grapheme>.NewSegmentChain(componentSegments);
-            return Composition;
-        }
-
-        public SegmentChain<Grapheme> GetComposition()
-        {
-            return Composition;
+            return glyphList;
         }
     }
 
@@ -172,25 +344,39 @@ namespace Lx
     public class Orthography : Dictionary<Grapheme, int>
     {
         public Script Script { get; set; }
-        public Dictionary<Glyph, Schema> Rules { get; set; }
+        //public Dictionary<Glyph, Schema> Rules { get; set; }
         //public List<string> Environments;
 
         // Rules for glyph expression
-        public class Schema
-        {
-            public Glyph Lemma { get; set; }
-            public List<string> Environments { get; set; }
-            public Glyph Form { get; set; }
-        }
+        //public class Schema
+        //{
+        //    public Glyph Lemma { get; set; }
+        //    public List<string> Environments { get; set; }
+        //    public Glyph Form { get; set; }
+        //}
 
-        internal List<Grapheme> AddGraphemes(List<Glyph> glyphs)
+        public List<Grapheme> AddGraphemes(List<Glyph> glyphs)
         {
-            throw new NotImplementedException();
+            var graphemes = new List<Grapheme>();
+
+            foreach (var glyph in glyphs)
+            {
+                graphemes.Add(AddGrapheme(glyph));
+            }
+
+            return graphemes;
         }
 
         public Grapheme AddGrapheme(Glyph glyph)
         {
-            throw new NotImplementedException();
+            Grapheme grapheme = new Grapheme(glyph);
+            
+            if (!ContainsKey(grapheme))
+            {
+                Add(grapheme, Count);
+            }
+
+            return grapheme;
         }
     }
 
@@ -206,7 +392,13 @@ namespace Lx
         }
     }
 
-    public class Phoneme : Segment { }
+    public class Phoneme : Segment
+    {
+        public override void Initialize()
+        {
+            throw new NotImplementedException();
+        }
+    }
 
     public class Phonology { }
 
@@ -222,6 +414,15 @@ namespace Lx
         public List<SegmentChain<Phoneme>> PhonemeChain { get; set; }
         public Concept Meaning { get; set; }
         public HashSet<Feature> Features { get; set; }
+        public new SegmentChain<Morpheme> Composition;
+
+        public override void Initialize()
+        {
+            Composition = new SegmentChain<Morpheme>();
+            GraphemeChain = new List<SegmentChain<Grapheme>>();
+            PhonemeChain = new List<SegmentChain<Phoneme>>();
+            Features = new HashSet<Feature>();
+        }
 
         public Morpheme(string graph)
         {
@@ -1085,8 +1286,15 @@ namespace Lx
         public SegmentChain<Morpheme> Sequence { get; set; }
         public new SegmentChain<Expression> Composition;
 
+        public override void Initialize()
+        {
+            Sequence = new SegmentChain<Morpheme>();
+            Composition = new SegmentChain<Expression>();
+        }
+
         public Expression(string rawExpression = "")
         {
+            Initialize();
             Graph = rawExpression;
         }
 
@@ -1135,6 +1343,18 @@ namespace Lx
         public SegmentChain<Expression> Expressions { get; set; }
         public new SegmentChain<Discourse> Composition { get; set; }
 
+        public override void Initialize()
+        {
+            Expressions = new SegmentChain<Expression>();
+            Composition = new SegmentChain<Discourse>();
+        }
+
+        public Discourse()
+        {
+            Expressions = new SegmentChain<Expression>();
+            Composition = new SegmentChain<Discourse>();
+        }
+
         public SegmentChain<Discourse> GetComposition()
         {
             return Composition;
@@ -1174,9 +1394,16 @@ namespace Lx
             }
         }
 
+        public override void Initialize()
+        {
+            Discourse = new SegmentChain<Discourse>();
+            Composition = new SegmentChain<Text>();
+        }
+
         public Text()
         {
-            //Paragraphs = new List<List<Expression>>();
+            Discourse = new SegmentChain<Discourse>();
+            Composition = new SegmentChain<Text>();
             Lexicon = new Lexicon();
             Paralexicon = new Lexicon
             {
@@ -1204,8 +1431,11 @@ namespace Lx
 
         internal void Clear()
         {
-            Discourse.Clear();
-            Composition.Clear();
+            if (Discourse != null)
+                Discourse.Clear();
+
+            if (Composition != null)
+                Composition.Clear();
         }
     }
 
