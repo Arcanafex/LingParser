@@ -144,13 +144,15 @@ namespace LingFiddler
                             var glyphs = Script.AddGlyphs(m.Value.ToCharArray());
 
                             // List<Glyph> => List<Grapheme>
+                            // Pre-analysis, graphemes are 1:1 with glyphs
                             var graphemes = Orthography.AddGraphemes(glyphs);
 
                             // List<Grapheme> => Morpheme
                             if (string.IsNullOrEmpty(m.Groups[1].Value))
                             {
-                                var morph = Text.Lexicon.Add(m.Groups[2].Value);
-                                morph.GraphemeChain.Add(Lx.SegmentChain<Lx.Grapheme>.NewSegmentChain(graphemes));
+                                //var morph = Text.Lexicon.Add(m.Groups[2].Value);
+                                //morph.GraphemeChain.Add(Lx.SegmentChain<Lx.Grapheme>.NewSegmentChain(graphemes));
+                                Lx.Morpheme morph = Text.Lexicon.Add(graphemes);
                                 expression.Sequence.AddLast(morph);
                             }
                             else
@@ -372,7 +374,11 @@ namespace LingFiddler
                 // this is problematic as it will re-add existing text lexicon
                 // result is that the lexicon sums will be multiplied.
 
-                Lexicon.Add(m.Graph.ToLower(), Text.Lexicon[m]);
+                //Lexicon.Add(m.Graph.ToLower(), Text.Lexicon[m]);
+                if (!Lexicon.ContainsKey(m))
+                {
+                    Lexicon.Add(m, Text.Lexicon[m]);
+                }
             }
         }
 

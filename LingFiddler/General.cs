@@ -39,6 +39,20 @@ namespace Lx
 
     public class SegmentChain<T> : LinkedList<T> where T : Segment
     {
+        private string graph = null;
+        public string Graph
+        {
+            get
+            {
+                if (graph == null)
+                {
+                    graph = this.ToString();
+                }
+
+                return graph;
+            }
+        }
+
         public static SegmentChain<T> NewSegmentChain(List<T> segmentList)
         {
             var chain = new SegmentChain<T>();
@@ -47,6 +61,18 @@ namespace Lx
                 chain.AddLast(segment);
             }
             return chain;
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+
+            foreach(var item in this)
+            {
+                sb.Append(item.ToString());
+            }
+
+            return sb.ToString();
         }
     }
 
@@ -1197,11 +1223,17 @@ namespace Lx
         public Morpheme Add(List<Grapheme> graphemes, int weight = 1)
         {
             var graphemeChain = SegmentChain<Grapheme>.NewSegmentChain(graphemes);
-            var thisWord = Keys.FirstOrDefault(w => w.GraphemeChain.Contains(graphemeChain));
+            //var thisWord = Keys.FirstOrDefault(w => w.GraphemeChain.Contains(graphemeChain));
+            var thisWord = Keys.FirstOrDefault(w => w.Graph == graphemeChain.Graph);
 
             if (thisWord == null)
             {
                 thisWord = new Morpheme(graphemeChain);
+                Add(thisWord, weight);
+            }
+            else
+            {
+                this[thisWord] += weight;
             }
 
             return thisWord;
