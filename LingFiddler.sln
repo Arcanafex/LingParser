@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27428.2043
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30225.117
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LingFiddler", "LingFiddler\LingFiddler.csproj", "{B124B9CB-0001-4114-96BC-BAC335A39E9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LingFiddlerTests", "LingFiddlerTests\LingFiddlerTests.csproj", "{F6E05741-2D25-4DFC-82E9-49986490C35C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{B124B9CB-0001-4114-96BC-BAC335A39E9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B124B9CB-0001-4114-96BC-BAC335A39E9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B124B9CB-0001-4114-96BC-BAC335A39E9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6E05741-2D25-4DFC-82E9-49986490C35C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E05741-2D25-4DFC-82E9-49986490C35C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6E05741-2D25-4DFC-82E9-49986490C35C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6E05741-2D25-4DFC-82E9-49986490C35C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -786,8 +786,8 @@ namespace LingFiddler
 
         internal void UpdateWordCount()
         {
-            countWord = CurrentLanguage.WordPattern.Matches(CurrentText).Count;
-            countLine = CurrentLanguage.LinePattern.Matches(CurrentText).Count;
+            countWord = CurrentLanguage != null && CurrentLanguage.WordPattern != null ? CurrentLanguage.WordPattern.Matches(CurrentText).Count : 0;
+            countLine = CurrentLanguage != null && CurrentLanguage.LinePattern != null ? CurrentLanguage.LinePattern.Matches(CurrentText).Count : 0;
 
             // TODO: bind these controls to these values
             CountWords.Text = CountWord;
