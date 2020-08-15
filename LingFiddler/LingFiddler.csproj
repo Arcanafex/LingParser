@@ -73,6 +73,30 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Lx\Corpus.cs" />
+    <Compile Include="Lx\Parser.cs" />
+    <Compile Include="Lx\Segments\Discourse.cs" />
+    <Compile Include="Lx\Segments\Expression.cs" />
+    <Compile Include="Lx\FiniteStateAutomoton.cs" />
+    <Compile Include="Lx\Segments\Glyph.cs" />
+    <Compile Include="Lx\Segments\GlyphChain.cs" />
+    <Compile Include="Lx\Segments\Grapheme.cs" />
+    <Compile Include="Lx\Lexicon.cs" />
+    <Compile Include="Lx\Segments\Morpheme.cs" />
+    <Compile Include="Lx\Orthography.cs" />
+    <Compile Include="Lx\Segments\Phoneme.cs" />
+    <Compile Include="Lx\Script.cs" />
+    <Compile Include="Lx\Segments\Segment.cs" />
+    <Compile Include="Lx\Segments\SegmentChain.cs" />
+    <Compile Include="ViewModels\DiscourseEntryViewModel.cs" />
+    <Compile Include="ViewModels\ExpressionEntryViewModel.cs" />
+    <Compile Include="ViewModels\MainViewModel.cs" />
+    <Compile Include="WPF\DiscourseEntry.xaml.cs">
+      <DependentUpon>DiscourseEntry.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WPF\ExpressionEntry.xaml.cs">
+      <DependentUpon>ExpressionEntry.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -81,12 +105,23 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="General.cs" />
+    <Compile Include="Lx\General.cs" />
+    <Compile Include="Lx\Language.cs" />
     <Compile Include="Local.cs" />
+    <Compile Include="Lx\Segments\Text.cs" />
+    <Compile Include="Lx\Transliteration.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="WPF\DiscourseEntry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\ExpressionEntry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -115,6 +150,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.109.2\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.109.2\build\net46\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

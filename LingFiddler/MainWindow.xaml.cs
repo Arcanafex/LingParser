@@ -4,17 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Data.SQLite;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.IO;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -25,6 +17,7 @@ namespace LingFiddler
     {
         internal static MainWindow Instance { get; private set; }
         internal LingMachine CurrentLanguage;
+        internal MainViewModel m_viewModel { get; set; }
 
         #region local Variables
         internal string CurrentText { get; set; }
@@ -524,6 +517,9 @@ namespace LingFiddler
             Instance = this;
             InitializeComponent();
             InitializeApp();
+
+            var m_viewModel = new MainViewModel();
+            DataContext = m_viewModel;
         }
 
         private void InitializeApp()

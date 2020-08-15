@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LingFiddlerTests
 {
-    public class ZIntTests
+    public class IntTests
     {
         public const int Iters = 10000;
 
@@ -16,34 +16,34 @@ namespace LingFiddlerTests
 
         }
 
-        //[Test]
-        //public void ShortTest()
-        //{
-        //    var random = new Random();
-        //    var list = new List<short>();
-        //    var dict = new Dictionary<short, string>();
-        //    short number = Iters;
+        [Test]
+        public void ShortTest()
+        {
+            var random = new Random();
+            var list = new List<short>();
+            var dict = new Dictionary<short, string>();
+            short number = Iters;
 
-        //    for(short i = 0; i < Iters; i++)
-        //    {
-        //        list.Add((short)(i - number));
-        //    }
+            for (short i = 0; i < Iters; i++)
+            {
+                list.Add((short)(i - number));
+            }
 
-        //    foreach(var num in list)
-        //    {
-        //        dict.Add(num, ((Stuff)random.Next(4)).ToString());
-        //    }
+            foreach (var num in list)
+            {
+                dict.Add(num, ((Stuff)random.Next(4)).ToString());
+            }
 
-        //    for(short i = 10; i < 100; i++)
-        //    {
-        //        var first = list[i];
-        //        var second = dict[(short)(i - number)];
+            for (short i = 10; i < 100; i++)
+            {
+                var first = list[i];
+                var second = dict[(short)(i - number)];
 
-        //        Console.WriteLine(string.Format("{0} - {1}", first, second));
-        //    }
+                Console.WriteLine(string.Format("{0} - {1}", first, second));
+            }
 
-        //    Assert.Pass();
-        //}
+            Assert.Pass();
+        }
 
         [Test]
         public void IntTest()
