@@ -8,5 +8,11 @@ namespace LingFiddler
 {
     public class MainViewModel
     {
+        internal LingMachine CurrentLanguage { get; set; }
+        private void InitializeApp()
+        {
+            CurrentLanguage = new LingMachine();
+            CurrentCharSet = new HashSet<char>();
+        }
     }
 }

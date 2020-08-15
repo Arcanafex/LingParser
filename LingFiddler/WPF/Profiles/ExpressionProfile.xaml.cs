@@ -16,16 +16,12 @@ using System.Windows.Shapes;
 namespace LingFiddler
 {
     /// <summary>
-    /// Interaction logic for DiscourseEntry.xaml
+    /// Interaction logic for ExpressionProfile.xaml
     /// </summary>
-    public partial class DiscourseEntry : UserControl
+    public partial class ExpressionProfile : UserControl
     {
-        private DiscourseEntryViewModel m_view;
-
-        public DiscourseEntry()
+        public ExpressionProfile()
         {
-            m_view = new DiscourseEntryViewModel();
-            DataContext = m_view;
             InitializeComponent();
         }
     }

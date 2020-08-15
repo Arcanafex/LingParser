@@ -1,24 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Data.SQLite;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Data.SQLite;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.ComponentModel;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 
 namespace LingFiddler
 {
-    public partial class MainWindow : Window
+    /// <summary>
+    /// Interaction logic for TextEntry.xaml
+    /// </summary>
+    public partial class TextEntry : UserControl
     {
-        internal static MainWindow Instance { get; private set; }
-        internal LingMachine CurrentLanguage;
-        internal MainViewModel m_viewModel { get; set; }
-
         #region local Variables
         internal string CurrentText { get; set; }
         internal HashSet<char> CurrentCharSet { get; set; }
@@ -213,7 +217,7 @@ namespace LingFiddler
                         if (Lexicon != null && Lexicon.ContainsKey(Morpheme))
                         {
                             Lexicon[Morpheme] = value;
-                        }                            
+                        }
                     }
                 }
 
@@ -460,7 +464,7 @@ namespace LingFiddler
 
                 internal TransitionViewItem(NgramViewItem originState, Lx.Transition<Lx.Grapheme> transition)
                 {
-                    OriginState = originState;                    
+                    OriginState = originState;
                     Transition = transition;
 
                     switch (transition.EndState.Type)
@@ -489,7 +493,7 @@ namespace LingFiddler
                 return view;
             }
 
-            internal ScriptView (Lx.Script script)
+            internal ScriptView(Lx.Script script)
             {
 
             }
@@ -512,14 +516,15 @@ namespace LingFiddler
 
         #endregion
 
-        public MainWindow()
-        {
-            Instance = this;
-            InitializeComponent();
-            InitializeApp();
+        private TextEntryViewModel m_view { get; set; }
 
-            var m_viewModel = new MainViewModel();
-            DataContext = m_viewModel;
+        public TextEntry()
+        {
+            InitializeComponent();
+
+            m_view = new TextEntryViewModel();
+            DataContext = m_view;
+            InitializeApp();
         }
 
         private void InitializeApp()
@@ -568,7 +573,7 @@ namespace LingFiddler
                 CurrentLanguage.LoadText(openDialog.FileName);
                 //string loadedText = File.ReadAllText(openDialog.FileName, Encoding.UTF8);
                 //UpdateTextView(loadedText, ViewMode.Text);
-            }            
+            }
         }
 
         #region SQLite
@@ -738,7 +743,7 @@ namespace LingFiddler
             }
             else
             {
-                numberGenerateLines = n;               
+                numberGenerateLines = n;
             }
         }
 
@@ -759,7 +764,7 @@ namespace LingFiddler
             foreach (var item in CurrentLanguage.WordModel.Transitions.OrderBy(t => t.Key.ToString()))
             {
                 float total = item.Value.Values.Sum(t => t.Weight);
-                builder.AppendLine($"{item.Key.ToString("-"), -20} : {100,-10}");
+                builder.AppendLine($"{item.Key.ToString("-"),-20} : {100,-10}");
 
                 foreach (var transition in item.Value.OrderBy(t => t.Key.ToString()))
                 {
@@ -799,7 +804,7 @@ namespace LingFiddler
         {
             ChangeMode(GridMode.Words);
 
-            var morphemeView = MorphemeView.GetMorphemeView(CurrentLanguage.Lexicon);   
+            var morphemeView = MorphemeView.GetMorphemeView(CurrentLanguage.Lexicon);
             WordGrid.ItemsSource = morphemeView;
         }
 
@@ -920,7 +925,7 @@ namespace LingFiddler
 
         private void ParseText_Click(object sender, RoutedEventArgs e)
         {
-            CurrentLanguage.ParseText(CurrentText);            
+            CurrentLanguage.ParseText(CurrentText);
         }
 
         private void ParseNgrams_Click(object sender, RoutedEventArgs e)
