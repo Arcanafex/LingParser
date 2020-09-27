@@ -88,16 +88,40 @@
     <Compile Include="Lx\Script.cs" />
     <Compile Include="Lx\Segments\Segment.cs" />
     <Compile Include="Lx\Segments\SegmentChain.cs" />
-    <Compile Include="ViewModels\DiscourseEntryViewModel.cs" />
-    <Compile Include="ViewModels\ExpressionEntryViewModel.cs" />
+    <Compile Include="ViewModels\Entry\DiscourseEntryViewModel.cs" />
+    <Compile Include="ViewModels\Entry\ExpressionEntryViewModel.cs" />
+    <Compile Include="ViewModels\Entry\TextEntryViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
-    <Compile Include="WPF\DiscourseEntry.xaml.cs">
+    <Compile Include="ViewModels\Entry\MorphemeEntryViewModel.cs" />
+    <Compile Include="ViewModels\Profiles\CorpusProfileViewModel.cs" />
+    <Compile Include="ViewModels\Profiles\ExpressionProfileViewModel.cs" />
+    <Compile Include="ViewModels\Profiles\TextProfileViewModel.cs" />
+    <Compile Include="WPF\Entry\DiscourseEntry.xaml.cs">
       <DependentUpon>DiscourseEntry.xaml</DependentUpon>
     </Compile>
-    <Compile Include="WPF\ExpressionEntry.xaml.cs">
+    <Compile Include="WPF\Entry\ExpressionEntry.xaml.cs">
       <DependentUpon>ExpressionEntry.xaml</DependentUpon>
     </Compile>
-    <Page Include="MainWindow.xaml">
+    <Compile Include="WPF\Entry\MorphemeEntry.xaml.cs">
+      <DependentUpon>MorphemeEntry.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WPF\Entry\TextEntry.xaml.cs">
+      <DependentUpon>TextEntry.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WPF\Profiles\CorpusProfile.xaml.cs">
+      <DependentUpon>CorpusProfile.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WPF\Profiles\ExpressionProfile.xaml.cs">
+      <DependentUpon>ExpressionProfile.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WPF\Profiles\TextProfile.xaml.cs">
+      <DependentUpon>TextProfile.xaml</DependentUpon>
+    </Compile>
+    <Page Include="WPF\Entry\TextEntry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -110,15 +134,31 @@
     <Compile Include="Local.cs" />
     <Compile Include="Lx\Segments\Text.cs" />
     <Compile Include="Lx\Transliteration.cs" />
-    <Compile Include="MainWindow.xaml.cs">
+    <Compile Include="WPF\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="WPF\DiscourseEntry.xaml">
+    <Page Include="WPF\Entry\DiscourseEntry.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="WPF\ExpressionEntry.xaml">
+    <Page Include="WPF\Entry\ExpressionEntry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\Entry\MorphemeEntry.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\Profiles\CorpusProfile.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\Profiles\ExpressionProfile.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WPF\Profiles\TextProfile.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -150,7 +190,9 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="WPF\Utilities\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.109.2\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.109.2\build\net46\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
